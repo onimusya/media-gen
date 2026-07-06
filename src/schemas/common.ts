@@ -17,6 +17,7 @@ export const ProviderIdSchema = z.enum([
   'runway',
   'minimax',
   'openrouter',
+  'edge-tts',
 ]);
 
 export type ProviderId = z.infer<typeof ProviderIdSchema>;

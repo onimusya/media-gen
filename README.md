@@ -1,6 +1,6 @@
 # media-gen-cli
 
-A production-ready CLI for multi-provider media generation. Generate images, videos, voice, and transcriptions through OpenAI, Google, Azure, ElevenLabs, Deepgram, Fal.ai, Luma AI, Replicate, Stability AI, and Runway — all from a single interface.
+A production-ready CLI for multi-provider media generation. Generate images, videos, voice, and transcriptions through OpenAI, Google, Azure, ElevenLabs, Deepgram, Fal.ai, Luma AI, Replicate, Stability AI, Runway, OpenRouter, and Microsoft Edge TTS — all from a single interface.
 
 Designed for both direct human use and AI agent integration.
 
@@ -17,9 +17,38 @@ npm install media-gen-cli
 npx media-gen --help
 ```
 
-## Environment Variables
+## Configuration
 
-Set API keys for the providers you want to use:
+### Config Hierarchy
+
+media-gen-cli loads configuration from multiple levels (highest priority first):
+
+1. **Project `.env`** — `<project>/.env` (overrides everything)
+2. **System environment variables** — already in your shell
+3. **User-level `~/.media-gen/.env`** — shared across all projects (fills gaps)
+
+Config files (`.media-gen/config.json`) merge similarly:
+1. `~/.media-gen/config.json` — user-level defaults
+2. `<project>/.media-gen/config.json` — project-level overrides
+
+### Setup
+
+```bash
+# Initialize user-level config (once, shared across all projects)
+media-gen config init --global
+# Creates ~/.media-gen/.env and ~/.media-gen/config.json
+
+# Initialize project-level config
+media-gen config init
+# Creates .media-gen/config.json in current project
+
+# Check what's configured
+media-gen config validate
+```
+
+### Environment Variables
+
+Set API keys for the providers you want to use in `~/.media-gen/.env` (global) or `<project>/.env` (per-project):
 
 ```bash
 # OpenAI (images, TTS, transcription)
@@ -31,7 +60,6 @@ GOOGLE_GENERATIVE_AI_API_KEY=AIza...
 # Azure OpenAI
 AZURE_OPENAI_API_KEY=
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_API_VERSION=2024-06-01
 
 # ElevenLabs (TTS, voice clone, isolation)
 ELEVENLABS_API_KEY=
@@ -53,44 +81,54 @@ STABILITY_API_KEY=
 
 # Runway (video)
 RUNWAY_API_KEY=
+
+# OpenRouter (images, multi-provider gateway)
+OPENROUTER_API_KEY=
+
+# Edge TTS requires NO API key (free)
+```
+
+### Default Provider & Model
+
+Set defaults so `--provider` and `--model` are optional:
+
+```bash
+# Global defaults
+MEDIA_GEN_DEFAULT_PROVIDER=openrouter
+MEDIA_GEN_DEFAULT_MODEL=openai/gpt-image-2
+
+# Per-type overrides (take priority over global)
+MEDIA_GEN_IMAGE_PROVIDER=openrouter
+MEDIA_GEN_IMAGE_MODEL=openai/gpt-image-2
+MEDIA_GEN_VIDEO_PROVIDER=google
+MEDIA_GEN_VIDEO_MODEL=veo-3.1-generate-preview
+MEDIA_GEN_VOICE_PROVIDER=edge-tts
+MEDIA_GEN_VOICE_MODEL=en-US-EmmaMultilingualNeural
+MEDIA_GEN_AUDIO_PROVIDER=deepgram
+MEDIA_GEN_AUDIO_MODEL=nova-3
 ```
 
 ## Quick Start
 
 ```bash
-# Initialize config
-media-gen config init
+# With defaults configured, just provide a prompt:
+media-gen image generate --prompt "A serene mountain lake at dawn" --output ./outputs/lake.png
 
-# Check which providers are ready
-media-gen config validate --json
-
-# Generate an image
+# Or specify provider/model explicitly:
 media-gen image generate \
-  --provider openai \
-  --model gpt-image-1 \
-  --prompt "A serene mountain lake at dawn" \
-  --output ./outputs/lake.png
+  --provider openai --model gpt-image-2 \
+  --prompt "A pixel art dragon" --output ./outputs/dragon.png
 
-# Generate a video
-media-gen video generate \
-  --provider google \
-  --model veo-3.1 \
-  --prompt "Smooth camera pan over a modern city" \
-  --duration 5 \
-  --wait \
-  --output ./outputs/city.mp4
-
-# Text to speech
+# Free text-to-speech (no API key needed):
 media-gen voice tts \
-  --provider elevenlabs \
-  --voice-id JBFqnCBsd6RMkjVDRZzb \
+  --provider edge-tts \
+  --voice-id en-US-EmmaMultilingualNeural \
   --text "Hello from media-gen!" \
   --output ./outputs/hello.mp3
 
-# Transcribe audio
+# Transcribe audio:
 media-gen audio transcribe \
-  --provider deepgram \
-  --input ./audio/meeting.mp3 \
+  --provider deepgram --input ./audio/meeting.mp3 \
   --output ./outputs/transcript.json
 ```
 
@@ -108,11 +146,11 @@ media-gen audio transcribe \
 | `voice isolate` | Isolate voice from background |
 | `audio transcribe` | Transcribe audio to text |
 | `audio translate` | Translate audio to another language |
-| `providers list` | List all supported providers |
-| `providers models` | List models for a provider |
-| `config init` | Initialize configuration |
+| `providers list` | List all providers with models |
+| `providers models` | List models (filter by provider/capability) |
+| `config init` | Initialize configuration (`--global` for user-level) |
 | `config validate` | Validate provider configuration |
-| `skill generate` | Generate AI agent skill file |
+| `skill generate` | Generate AI agent SKILL.md file |
 | `job status` | Check async job status |
 | `job download` | Download async job result |
 
@@ -139,140 +177,80 @@ media-gen audio transcribe \
 | Replicate | ✓ | ✓ | | | | | |
 | Stability AI | ✓ | | | | | | |
 | Runway | | ✓ | | | | | |
+| OpenRouter | ✓ | | | | | | |
+| Edge TTS | | | ✓ (free) | | | | |
 
-## Agent Skill File
+## Agent Integration
 
-Generate a skill file that AI agents can use to discover and call this CLI:
+The CLI includes a SKILL.md file at `skills/media-generation/SKILL.md` following the [Agent Skills](https://agentskills.io/) open standard. AI agents can:
+
+1. Discover the skill file and learn available capabilities
+2. Run the pre-built CLI at `skills/media-generation/scripts/media-gen.mjs`
+3. Parse structured JSON responses
+4. Handle errors programmatically via error codes
 
 ```bash
-media-gen skill generate
+# Agent invocation pattern:
+node ./skills/media-generation/scripts/media-gen.mjs image generate \
+  --prompt "..." --output ./out.png --json
 ```
 
-This creates `.media-gen/skill.md` with full documentation of commands, required environment variables, output formats, and usage examples. A default skill file is also included at `skills/media-generation/skill.md`.
-
-### Using with AI Agents
-
-The skill file enables agent frameworks (Claude Code, Codex CLI, custom agents) to:
-
-1. Discover available media generation capabilities
-2. Understand the command interface and options
-3. Parse structured JSON responses
-4. Handle errors programmatically
-5. Respect safety rules (no overwriting, workspace-only output)
-
-Always use `--json` when calling from an agent for reliable parsing.
+See `docs/agents.md` for the full agent integration guide.
 
 ## Examples
 
-See the `examples/` directory for complete usage scripts:
+See the `examples/` directory:
 
-- `examples/image-generate.sh` — Image generation with multiple providers
-- `examples/video-generate.sh` — Video generation with async polling
-- `examples/voice-tts.sh` — Text-to-speech and voice cloning
-- `examples/transcribe.sh` — Audio transcription and translation
+- `image-generate.sh` — Image generation with multiple providers
+- `video-generate.sh` — Video generation with async polling
+- `voice-tts.sh` — Text-to-speech with OpenAI and ElevenLabs
+- `edge-tts.sh` — Free TTS with Microsoft Edge (multiple languages)
+- `deepgram-transcribe.sh` — Transcription and translation
+- `transcribe.sh` — Audio transcription examples
 
 ## Development
 
 ```bash
-# Install dependencies
-npm install
-
-# Run in development mode
-npm run dev -- --help
-npm run dev -- image generate --provider openai --prompt "test" --dry-run --json
-
-# Type check
-npm run typecheck
-
-# Run tests
-npm test
-
-# Lint
-npm run lint
-
-# Format
-npm run format
+npm install          # Install dependencies
+npm run dev -- --help  # Run in dev mode
+npm run typecheck    # Type check
+npm test             # Run tests
+npm run build        # Bundle to dist/media-gen.mjs
 ```
 
-## Build and Bundle
-
-The CLI is bundled into a single distributable file using esbuild:
+## Build
 
 ```bash
 npm run build
 ```
 
-Output: `dist/media-gen.mjs` (single file, ~360KB)
-
-Run directly:
-
-```bash
-node dist/media-gen.mjs --help
-```
+Produces `dist/media-gen.mjs` and copies it to `skills/media-generation/scripts/media-gen.mjs` for agent access.
 
 ## Async Video Jobs
-
-Video providers often return async jobs. Use `--wait` to poll until complete:
 
 ```bash
 # Wait for completion
 media-gen video generate \
-  --provider luma --model ray-2 \
+  --provider google --model veo-3.1-generate-preview \
   --prompt "..." --wait --timeout 300000 --json
 
-# Or get job ID immediately
-media-gen video generate --provider luma --model ray-2 --prompt "..." --json
-# Returns: { "ok": true, "jobId": "abc123", "status": "processing" }
-
-# Check status later
-media-gen job status --provider luma --job-id abc123 --json
-
-# Download when complete
-media-gen job download --provider luma --job-id abc123 --output ./video.mp4
+# Or get job ID and check later
+media-gen video generate --provider google --model veo-3.1-generate-preview --prompt "..." --json
+media-gen job status --provider google --job-id "operations/abc" --json
+media-gen job download --provider google --job-id "operations/abc" --output ./video.mp4
 ```
 
 ## Troubleshooting
 
-### Provider not configured
+| Error | Fix |
+|-------|-----|
+| `PROVIDER_NOT_CONFIGURED` | Set the API key in `~/.media-gen/.env` or project `.env` |
+| `CAPABILITY_NOT_SUPPORTED` | Use a different provider. Run `providers list --capability <cap>` |
+| `FILE_ALREADY_EXISTS` | Add `--overwrite` or use a different output path |
+| `EXTERNAL_OUTPUT_BLOCKED` | Add `--allow-external-output` for paths outside project |
 
-```
-Error [PROVIDER_NOT_CONFIGURED]: Missing OPENAI_API_KEY
-  Suggestion: Set OPENAI_API_KEY in your environment or run media-gen config init.
-```
-
-Set the required environment variable or add it to your `.env` file.
-
-### Capability not supported
-
-```
-Error [CAPABILITY_NOT_SUPPORTED]: Provider "deepgram" does not support image generation
-  Suggestion: Try: openai, stability, fal, replicate, google
-```
-
-Use a provider that supports the operation. Run `media-gen providers list --json` to see capabilities.
-
-### File already exists
-
-```
-Error [FILE_ALREADY_EXISTS]: File already exists: ./outputs/image.png
-  Suggestion: Use --overwrite to replace existing files.
-```
-
-Add `--overwrite` or use a different output path.
-
-### External output blocked
-
-```
-Error [EXTERNAL_OUTPUT_BLOCKED]: Output path is outside the project directory.
-  Suggestion: Use --allow-external-output to write outside the project directory.
-```
-
-For security, output defaults to within the project. Add `--allow-external-output` if needed.
-
-### Debug mode
-
-Add `--debug` to any command for verbose logging of API requests and responses.
+Add `--debug` to any command for verbose logging.
 
 ## License
 
-MIT
+MIT - Francis Hor

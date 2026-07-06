@@ -16,6 +16,7 @@ import { ReplicateProvider } from './replicate/index.js';
 import { StabilityProvider } from './stability/index.js';
 import { RunwayProvider } from './runway/index.js';
 import { OpenRouterProvider } from './openrouter/index.js';
+import { EdgeTTSProvider } from './edge-tts/index.js';
 
 const providers: Map<string, FullProvider> = new Map();
 
@@ -33,6 +34,7 @@ function registerDefaults(): void {
     new StabilityProvider(),
     new RunwayProvider(),
     new OpenRouterProvider(),
+    new EdgeTTSProvider(),
   ];
   for (const p of all) {
     providers.set(p.id, p);

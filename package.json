@@ -37,6 +37,7 @@
   "dependencies": {
     "commander": "^12.1.0",
     "dotenv": "^16.4.7",
+    "edge-tts-universal": "^1.4.0",
     "ora": "^8.1.1",
     "pino": "^9.6.0",
     "pino-pretty": "^13.0.0",

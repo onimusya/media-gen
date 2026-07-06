@@ -3,7 +3,7 @@
  */
 
 import { Command } from 'commander';
-import { initConfig, getConfiguredProviders, getConfigFilePath } from '../core/config.js';
+import { initConfig, initHomeConfig, getConfiguredProviders, getConfigFilePath, getHomeConfigDir } from '../core/config.js';
 import { listProviders } from '../providers/registry.js';
 import { printResponse } from '../core/output.js';
 import { toErrorResponse } from '../core/errors.js';
@@ -16,15 +16,27 @@ export function createConfigCommand(): Command {
   config
     .command('init')
     .description('Initialize configuration directory and file')
+    .option('--global', 'Initialize user-level config at ~/.media-gen/', false)
     .option('--json', 'Output as JSON', false)
     .action((opts) => {
       try {
-        const configPath = initConfig();
-        printResponse({
-          ok: true, type: 'config-init', provider: '',
-          configFile: configPath,
-          message: `Configuration initialized at ${configPath}`,
-        }, opts.json);
+        let configPath: string;
+        if (opts.global) {
+          configPath = initHomeConfig();
+          printResponse({
+            ok: true, type: 'config-init', provider: '',
+            configFile: configPath,
+            configDir: getHomeConfigDir(),
+            message: `User-level config initialized at ${configPath}. Edit ~/.media-gen/.env to set API keys globally.`,
+          }, opts.json);
+        } else {
+          configPath = initConfig();
+          printResponse({
+            ok: true, type: 'config-init', provider: '',
+            configFile: configPath,
+            message: `Project config initialized at ${configPath}`,
+          }, opts.json);
+        }
       } catch (err) {
         printResponse(toErrorResponse(err), opts.json);
         process.exitCode = 1;
@@ -61,14 +73,16 @@ export function createConfigCommand(): Command {
           console.log(JSON.stringify({
             ok: true,
             type: 'config-validate',
-            configFile: getConfigFilePath(),
+            homeConfigDir: getHomeConfigDir(),
+            projectConfigFile: getConfigFilePath(),
             providers: providerStatus,
             configuredCount: configuredIds.length,
             totalProviders: allProviders.length,
           }, null, 2));
         } else {
           console.log('Provider Configuration Status\n');
-          console.log(`Config file: ${getConfigFilePath()}`);
+          console.log(`Home config:    ${getHomeConfigDir()}`);
+          console.log(`Project config: ${getConfigFilePath()}`);
           console.log(`Configured: ${configuredIds.length}/${allProviders.length} providers\n`);
 
           for (const p of providerStatus) {

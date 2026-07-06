@@ -34,7 +34,10 @@ media-gen-cli/
 
 3. **Provider abstraction**: All providers implement `FullProvider` (combination of `MediaProvider` + optional `ImageProvider`, `VideoProvider`, `VoiceProvider`, `AudioProvider`). New providers only need to implement the interfaces they support.
 
-4. **Config precedence**: `.env` file (override: true) > system env vars > `.media-gen/config.json`. This ensures project-local config always wins.
+4. **Config precedence**: 
+   - `.env` hierarchy: `<project>/.env` (override:true) > system env > `~/.media-gen/.env` (override:false, fills gaps)
+   - Config JSON: `~/.media-gen/config.json` (base) merged with `<project>/.media-gen/config.json` (overrides per-provider)
+   - Environment variables from .env loading overlay on top of config.json values
 
 5. **Default provider/model resolution**: CLI arg > type-specific env var (`MEDIA_GEN_IMAGE_PROVIDER`) > global env var (`MEDIA_GEN_DEFAULT_PROVIDER`) > config file defaults.
 
@@ -42,11 +45,20 @@ media-gen-cli/
 
 ## Provider Implementation Notes
 
+### Edge TTS (Free)
+- No API key required
+- Uses `edge-tts-universal` npm package (WebSocket to Microsoft's TTS service)
+- Default voice: `en-US-EmmaMultilingualNeural`
+- 400+ voices across 100+ languages
+- Output format: MP3
+- Speed control via rate string (e.g., "+20%" for 1.2x)
+- `isProviderConfigured` always returns true (keyless provider)
+
 ### OpenAI
 - Uses `/v1/images/generations` for image gen (returns b64_json or url)
 - Uses `/v1/images/edits` with FormData for image editing
 - TTS at `/v1/audio/speech`, transcription at `/v1/audio/transcriptions`
-- Models: `gpt-image-2` (latest), `gpt-image-1`, `gpt-4o-mini-tts`, `whisper-1`
+- Models: `gpt-image-2` (latest, April 2026), `gpt-image-1`, `gpt-4o-mini-tts`, `whisper-1`
 - DALL-E 3 was retired March 2026
 
 ### Google (Gemini API)
@@ -133,8 +145,10 @@ media-gen-cli/
 
 ## Common Issues & Fixes
 
-### `.env` override behavior
-`dotenv` with `override: true` means the `.env` file always wins over system env vars. If you set `OPENROUTER_API_KEY=` (empty) in `.env`, it wipes the system value. Solution: don't list unconfigured providers in `.env`.
+### `.env` hierarchy
+- `~/.media-gen/.env` loads first with `override: false` (won't overwrite existing env vars)
+- `<project>/.env` loads second with `override: true` (always wins)
+- If you set `OPENROUTER_API_KEY=` (empty) in project `.env`, it wipes the key. Don't list unconfigured providers as empty entries.
 
 ### Google Veo model names
 The API model name is `veo-3.1-generate-preview` — NOT `veo-3.1`. The marketing names differ from API identifiers.
@@ -153,13 +167,15 @@ Use `x-goog-api-key` header, not `?key=` query parameter. The query param method
 - Save to `.firecrawl/` directory
 - The `.firecrawl/` folder is gitignored
 
-## Version History
+### Version History
 
 ### 1.0.0 (Initial)
-- 11 provider adapters: OpenAI, Google, Azure, ElevenLabs, Deepgram, Fal, Luma, Replicate, Stability, Runway, OpenRouter
+- 12 provider adapters: OpenAI, Google, Azure, ElevenLabs, Deepgram, Fal, Luma, Replicate, Stability, Runway, OpenRouter, Edge TTS
 - CLI commands: image, video, voice, audio, config, providers, skill, job
-- Default provider/model from env vars
-- models.json config for model registry
-- Agent skill file with cross-platform scripts
-- Single-file bundle via esbuild
+- Default provider/model from env vars (global + per-type)
+- Multi-level config: ~/.media-gen/.env → project .env → env vars
+- models.json config for model registry (bundled + user override)
+- Agent SKILL.md following Agent Skills open standard
+- Cross-platform scripts (bash, cmd, PowerShell)
+- Single-file bundle via esbuild (copies to skills/scripts/ on build)
 - 25 tests passing

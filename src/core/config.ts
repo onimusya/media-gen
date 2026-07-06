@@ -5,6 +5,7 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
+import { homedir } from 'node:os';
 import { config as loadDotenv } from 'dotenv';
 
 export interface ProviderConfig {
@@ -51,6 +52,10 @@ const ENV_KEY_MAP: Record<string, Record<string, string>> = {
   openrouter: { apiKey: 'OPENROUTER_API_KEY' },
 };
 
+export function getHomeConfigDir(): string {
+  return join(homedir(), '.media-gen');
+}
+
 export function getConfigDir(cwd?: string): string {
   return resolve(cwd || process.cwd(), CONFIG_DIR);
 }
@@ -60,30 +65,66 @@ export function getConfigFilePath(cwd?: string): string {
 }
 
 export function loadConfig(cwd?: string): MediaGenConfig {
-  // Load .env file if present — override system env vars so project-local
-  // .env is the source of truth for this CLI
-  loadDotenv({ path: resolve(cwd || process.cwd(), '.env'), override: true });
+  const workDir = cwd || process.cwd();
+  const homeDir = getHomeConfigDir();
+
+  // Load .env hierarchy (lowest to highest priority):
+  // 1. ~/.media-gen/.env (user-level, shared across all projects)
+  //    Uses override:false so system env vars set by the user's shell take precedence
+  // 2. <project>/.env (project-level, overrides everything)
+  //    Uses override:true so project config is the final authority
+
+  const homeEnv = join(homeDir, '.env');
+  if (existsSync(homeEnv)) {
+    loadDotenv({ path: homeEnv, override: false });
+  }
+
+  const projectEnv = resolve(workDir, '.env');
+  if (existsSync(projectEnv)) {
+    loadDotenv({ path: projectEnv, override: true });
+  }
 
   const config: MediaGenConfig = { providers: {} };
 
-  // Load from config file if exists
-  const configPath = getConfigFilePath(cwd);
-  if (existsSync(configPath)) {
+  // Load config.json hierarchy (merged, project overrides home):
+  // 1. ~/.media-gen/config.json (user-level defaults)
+  const homeConfigPath = join(homeDir, CONFIG_FILE);
+  if (existsSync(homeConfigPath)) {
     try {
-      const raw = readFileSync(configPath, 'utf-8');
-      const fileConfig = JSON.parse(raw) as Partial<MediaGenConfig>;
-      if (fileConfig.providers) {
-        config.providers = { ...fileConfig.providers };
+      const raw = readFileSync(homeConfigPath, 'utf-8');
+      const homeConfig = JSON.parse(raw) as Partial<MediaGenConfig>;
+      if (homeConfig.providers) {
+        config.providers = { ...homeConfig.providers };
       }
-      if (fileConfig.defaults) {
-        config.defaults = { ...fileConfig.defaults };
+      if (homeConfig.defaults) {
+        config.defaults = { ...homeConfig.defaults };
       }
     } catch {
-      // Invalid config file, continue with env vars
+      // Invalid home config file, skip
     }
   }
 
-  // Overlay environment variables (take precedence)
+  // 2. <project>/.media-gen/config.json (project-level overrides)
+  const projectConfigPath = getConfigFilePath(workDir);
+  if (existsSync(projectConfigPath)) {
+    try {
+      const raw = readFileSync(projectConfigPath, 'utf-8');
+      const projectConfig = JSON.parse(raw) as Partial<MediaGenConfig>;
+      if (projectConfig.providers) {
+        // Merge per-provider (project overrides home per key)
+        for (const [id, provConf] of Object.entries(projectConfig.providers)) {
+          config.providers[id] = { ...config.providers[id], ...provConf };
+        }
+      }
+      if (projectConfig.defaults) {
+        config.defaults = { ...config.defaults, ...projectConfig.defaults };
+      }
+    } catch {
+      // Invalid project config file, skip
+    }
+  }
+
+  // 3. Environment variables (highest precedence after .env loading)
   for (const [providerId, envKeys] of Object.entries(ENV_KEY_MAP)) {
     for (const [field, envVar] of Object.entries(envKeys)) {
       const value = process.env[envVar];
@@ -104,7 +145,11 @@ export function getProviderConfig(providerId: string, cwd?: string): ProviderCon
   return config.providers[providerId];
 }
 
+// Providers that don't require an API key
+const KEYLESS_PROVIDERS = new Set(['edge-tts']);
+
 export function isProviderConfigured(providerId: string, cwd?: string): boolean {
+  if (KEYLESS_PROVIDERS.has(providerId)) return true;
   const config = getProviderConfig(providerId, cwd);
   return !!config?.apiKey;
 }
@@ -136,6 +181,50 @@ export function initConfig(cwd?: string): string {
   };
 
   writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2), 'utf-8');
+  return configPath;
+}
+
+/**
+ * Initialize user-level config at ~/.media-gen/
+ */
+export function initHomeConfig(): string {
+  const homeDir = getHomeConfigDir();
+  const configPath = join(homeDir, CONFIG_FILE);
+
+  if (!existsSync(homeDir)) {
+    mkdirSync(homeDir, { recursive: true });
+  }
+
+  if (existsSync(configPath)) {
+    return configPath;
+  }
+
+  const defaultConfig: MediaGenConfig = {
+    providers: {},
+    defaults: {},
+  };
+
+  writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2), 'utf-8');
+
+  // Also create a template .env
+  const envPath = join(homeDir, '.env');
+  if (!existsSync(envPath)) {
+    const template = `# media-gen-cli user-level configuration
+# API keys here apply to all projects unless overridden by a project .env
+
+OPENAI_API_KEY=
+GOOGLE_GENERATIVE_AI_API_KEY=
+ELEVENLABS_API_KEY=
+DEEPGRAM_API_KEY=
+OPENROUTER_API_KEY=
+
+# Default provider/model
+MEDIA_GEN_DEFAULT_PROVIDER=
+MEDIA_GEN_DEFAULT_MODEL=
+`;
+    writeFileSync(envPath, template, 'utf-8');
+  }
+
   return configPath;
 }
 

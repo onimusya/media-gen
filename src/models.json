@@ -187,5 +187,51 @@
         "recraft/recraft-v3"
       ]
     }
+  },
+  "edge-tts": {
+    "models": [
+      "en-US-EmmaMultilingualNeural",
+      "en-US-AndrewMultilingualNeural",
+      "en-US-AvaMultilingualNeural",
+      "en-US-BrianMultilingualNeural",
+      "en-US-JennyNeural",
+      "en-US-GuyNeural",
+      "en-US-AriaNeural",
+      "en-GB-SoniaNeural",
+      "en-GB-RyanNeural",
+      "zh-CN-XiaoxiaoNeural",
+      "zh-CN-YunxiNeural",
+      "ja-JP-NanamiNeural",
+      "ko-KR-SunHiNeural",
+      "fr-FR-DeniseNeural",
+      "de-DE-KatjaNeural",
+      "es-ES-ElviraNeural",
+      "pt-BR-FranciscaNeural",
+      "hi-IN-SwaraNeural",
+      "ar-SA-ZariyahNeural"
+    ],
+    "capabilities": {
+      "voice-tts": [
+        "en-US-EmmaMultilingualNeural",
+        "en-US-AndrewMultilingualNeural",
+        "en-US-AvaMultilingualNeural",
+        "en-US-BrianMultilingualNeural",
+        "en-US-JennyNeural",
+        "en-US-GuyNeural",
+        "en-US-AriaNeural",
+        "en-GB-SoniaNeural",
+        "en-GB-RyanNeural",
+        "zh-CN-XiaoxiaoNeural",
+        "zh-CN-YunxiNeural",
+        "ja-JP-NanamiNeural",
+        "ko-KR-SunHiNeural",
+        "fr-FR-DeniseNeural",
+        "de-DE-KatjaNeural",
+        "es-ES-ElviraNeural",
+        "pt-BR-FranciscaNeural",
+        "hi-IN-SwaraNeural",
+        "ar-SA-ZariyahNeural"
+      ]
+    }
   }
 }
