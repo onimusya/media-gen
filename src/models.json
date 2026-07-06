@@ -1,0 +1,191 @@
+{
+  "openai": {
+    "models": [
+      "gpt-image-2",
+      "gpt-image-1",
+      "gpt-4o-mini-tts",
+      "tts-1",
+      "tts-1-hd",
+      "whisper-1",
+      "gpt-4o-transcribe",
+      "gpt-4o-mini-transcribe"
+    ],
+    "capabilities": {
+      "image-generate": ["gpt-image-2", "gpt-image-1"],
+      "image-edit": ["gpt-image-2", "gpt-image-1"],
+      "voice-tts": ["gpt-4o-mini-tts", "tts-1", "tts-1-hd"],
+      "audio-transcribe": ["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"],
+      "audio-translate": ["whisper-1"]
+    }
+  },
+  "google": {
+    "models": [
+      "imagen-4.0-generate-001",
+      "imagen-3.0-generate-002",
+      "veo-3.1-generate-preview",
+      "veo-3.1-fast-generate-preview",
+      "veo-3.1-lite-generate-preview",
+      "veo-3.0-generate-001",
+      "veo-3.0-fast-generate-001",
+      "veo-2.0-generate-001"
+    ],
+    "capabilities": {
+      "image-generate": ["imagen-4.0-generate-001", "imagen-3.0-generate-002"],
+      "video-generate": ["veo-3.1-generate-preview", "veo-3.1-fast-generate-preview", "veo-3.1-lite-generate-preview", "veo-3.0-generate-001", "veo-3.0-fast-generate-001", "veo-2.0-generate-001"]
+    }
+  },
+  "azure": {
+    "models": [
+      "gpt-image-2",
+      "gpt-image-1",
+      "gpt-4o-mini-tts",
+      "tts-1",
+      "tts-1-hd",
+      "whisper-1",
+      "gpt-4o-transcribe",
+      "gpt-4o-mini-transcribe"
+    ],
+    "capabilities": {
+      "image-generate": ["gpt-image-2", "gpt-image-1"],
+      "voice-tts": ["gpt-4o-mini-tts", "tts-1", "tts-1-hd"],
+      "audio-transcribe": ["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"],
+      "audio-translate": ["whisper-1"]
+    }
+  },
+  "elevenlabs": {
+    "models": [
+      "eleven_v3",
+      "eleven_multilingual_v2",
+      "eleven_turbo_v2_5",
+      "eleven_turbo_v2",
+      "eleven_monolingual_v1"
+    ],
+    "capabilities": {
+      "voice-tts": ["eleven_v3", "eleven_multilingual_v2", "eleven_turbo_v2_5", "eleven_turbo_v2", "eleven_monolingual_v1"],
+      "voice-clone": ["eleven_v3", "eleven_multilingual_v2"],
+      "voice-isolate": []
+    }
+  },
+  "deepgram": {
+    "models": [
+      "nova-3",
+      "nova-3-medical",
+      "nova-2",
+      "nova",
+      "enhanced",
+      "base"
+    ],
+    "capabilities": {
+      "audio-transcribe": ["nova-3", "nova-3-medical", "nova-2", "nova", "enhanced", "base"],
+      "audio-translate": ["nova-3", "nova-2"]
+    }
+  },
+  "fal": {
+    "models": [
+      "fal-ai/flux-2/pro",
+      "fal-ai/flux-2/max",
+      "fal-ai/flux-pro/v1.1",
+      "fal-ai/flux/dev",
+      "fal-ai/flux-realism",
+      "fal-ai/flux-kontext/pro",
+      "fal-ai/seedream-4.5",
+      "fal-ai/veo-3.1",
+      "fal-ai/seedance-2.0",
+      "fal-ai/kling-video/v3.0/pro",
+      "fal-ai/minimax/video-01"
+    ],
+    "capabilities": {
+      "image-generate": ["fal-ai/flux-2/pro", "fal-ai/flux-2/max", "fal-ai/flux-pro/v1.1", "fal-ai/flux/dev", "fal-ai/flux-realism", "fal-ai/seedream-4.5"],
+      "image-edit": ["fal-ai/flux-kontext/pro", "fal-ai/flux-2/pro"],
+      "video-generate": ["fal-ai/veo-3.1", "fal-ai/seedance-2.0", "fal-ai/kling-video/v3.0/pro", "fal-ai/minimax/video-01"],
+      "video-image-to-video": ["fal-ai/seedance-2.0", "fal-ai/kling-video/v3.0/pro"]
+    }
+  },
+  "luma": {
+    "models": [
+      "ray3.2",
+      "ray3.14",
+      "ray-2",
+      "ray-1"
+    ],
+    "capabilities": {
+      "video-generate": ["ray3.2", "ray3.14", "ray-2", "ray-1"],
+      "video-image-to-video": ["ray3.2", "ray3.14", "ray-2"],
+      "video-extend": ["ray3.2", "ray3.14"]
+    }
+  },
+  "replicate": {
+    "models": [
+      "black-forest-labs/flux-2-pro",
+      "black-forest-labs/flux-2-max",
+      "black-forest-labs/flux-kontext-pro",
+      "black-forest-labs/flux-1.1-pro",
+      "black-forest-labs/flux-schnell",
+      "runwayml/gen-4.5",
+      "minimax/video-01",
+      "alibaba/happy-horse-1.0"
+    ],
+    "capabilities": {
+      "image-generate": ["black-forest-labs/flux-2-pro", "black-forest-labs/flux-2-max", "black-forest-labs/flux-1.1-pro", "black-forest-labs/flux-schnell"],
+      "image-edit": ["black-forest-labs/flux-kontext-pro", "black-forest-labs/flux-2-pro"],
+      "video-generate": ["runwayml/gen-4.5", "minimax/video-01", "alibaba/happy-horse-1.0"]
+    }
+  },
+  "stability": {
+    "models": [
+      "sd3.5-large",
+      "sd3.5-large-turbo",
+      "sd3.5-medium",
+      "stable-image-ultra",
+      "stable-image-core"
+    ],
+    "capabilities": {
+      "image-generate": ["sd3.5-large", "sd3.5-large-turbo", "sd3.5-medium", "stable-image-ultra", "stable-image-core"]
+    }
+  },
+  "runway": {
+    "models": [
+      "gen4.5",
+      "gen4_turbo",
+      "gen4",
+      "aleph-2.0",
+      "gen3a_turbo"
+    ],
+    "capabilities": {
+      "video-generate": ["gen4.5", "gen4_turbo", "gen4", "aleph-2.0", "gen3a_turbo"],
+      "video-image-to-video": ["gen4.5", "gen4_turbo", "gen4", "aleph-2.0"]
+    }
+  },
+  "openrouter": {
+    "models": [
+      "openai/gpt-image-2",
+      "openai/gpt-image-1",
+      "google/gemini-2.5-flash-image",
+      "google/gemini-3.1-flash-image",
+      "google/gemini-3.1-flash-image-preview",
+      "google/gemini-3.1-flash-lite-image",
+      "google/gemini-3-pro-image",
+      "google/gemini-3-pro-image-preview",
+      "x-ai/grok-imagine-image-quality",
+      "bytedance-seed/seedream-4.5",
+      "black-forest-labs/flux.2-klein-4b",
+      "recraft/recraft-v3"
+    ],
+    "capabilities": {
+      "image-generate": [
+        "openai/gpt-image-2",
+        "openai/gpt-image-1",
+        "google/gemini-2.5-flash-image",
+        "google/gemini-3.1-flash-image",
+        "google/gemini-3.1-flash-image-preview",
+        "google/gemini-3.1-flash-lite-image",
+        "google/gemini-3-pro-image",
+        "google/gemini-3-pro-image-preview",
+        "x-ai/grok-imagine-image-quality",
+        "bytedance-seed/seedream-4.5",
+        "black-forest-labs/flux.2-klein-4b",
+        "recraft/recraft-v3"
+      ]
+    }
+  }
+}

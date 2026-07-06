@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Built CLI copy in skills (regenerated on build)
+skills/media-generation/scripts/media-gen.mjs
+
+# Environment variables (contains secrets)
+.env
+.env.local
+.env.*.local
+
+# Config with potential secrets
+.media-gen/
+
+# Firecrawl cache
+.firecrawl/
+
+# Generated outputs
+outputs/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# TypeScript
+*.tsbuildinfo
+
+# Test coverage
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Optional npm cache
+.npm/

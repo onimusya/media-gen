@@ -1,0 +1,54 @@
+{
+  "name": "media-gen-cli",
+  "version": "1.0.0",
+  "description": "Production-ready CLI for multi-provider media generation (images, video, voice, audio) designed for developers and AI agents",
+  "type": "module",
+  "main": "./dist/media-gen.js",
+  "bin": {
+    "media-gen": "./dist/media-gen.mjs"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "node esbuild.config.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/ --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "ai",
+    "media-generation",
+    "image-generation",
+    "video-generation",
+    "text-to-speech",
+    "transcription",
+    "openai",
+    "gemini",
+    "elevenlabs",
+    "deepgram",
+    "cli"
+  ],
+  "author": "Francis Hor <francishoe@gmail.com>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.7",
+    "ora": "^8.1.1",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.24.2",
+    "eslint": "^9.16.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
