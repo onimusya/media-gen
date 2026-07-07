@@ -185,6 +185,7 @@ export class OpenAIProvider implements FullProvider {
     };
 
     if (input.speed) body.speed = input.speed;
+    if (input.instructions) body.instructions = input.instructions;
 
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',

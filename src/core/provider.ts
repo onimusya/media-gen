@@ -127,6 +127,7 @@ export interface TextToSpeechInput {
   speed?: number;
   outputFile: string;
   format?: string;
+  instructions?: string;
 }
 
 export interface VoiceCloneInput {

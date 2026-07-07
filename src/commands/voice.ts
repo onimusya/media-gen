@@ -21,6 +21,7 @@ export function createVoiceCommand(): Command {
     .requiredOption('--text <text>', 'Text to convert to speech')
     .option('--model <model>', 'TTS model')
     .option('--speed <speed>', 'Playback speed multiplier')
+    .option('--instructions <text>', 'Voice style instructions (OpenAI gpt-4o-mini-tts only)')
     .option('--format <format>', 'Output format (mp3, wav, ogg, flac)')
     .option('--output <path>', 'Output file path')
     .option('--output-dir <dir>', 'Output directory')
@@ -73,6 +74,7 @@ export function createVoiceCommand(): Command {
           model,
           speed: opts.speed ? parseFloat(opts.speed) : undefined,
           format: opts.format,
+          instructions: opts.instructions,
           outputFile,
         });
 
