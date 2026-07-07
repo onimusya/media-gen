@@ -169,6 +169,68 @@ node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs image generate \
   --prompt "test" --dry-run --json
 ```
 
+## Async Video Jobs
+
+Video generation is asynchronous. Providers return a job ID instead of a file.
+
+### Pattern 1: Wait for completion (simple)
+
+Add `--wait` to block until the video is ready:
+
+```bash
+node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs video generate \
+  --provider google \
+  --model veo-3.1-generate-preview \
+  --prompt "A cinematic scene" \
+  --output ./outputs/video.mp4 \
+  --wait \
+  --poll-interval 5000 \
+  --timeout 300000 \
+  --json
+```
+
+Returns the final file path when complete.
+
+### Pattern 2: Non-blocking (get job ID, check later)
+
+Without `--wait`, the CLI returns immediately with a job ID:
+
+```bash
+# Start generation (returns instantly)
+node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs video generate \
+  --provider google \
+  --model veo-3.1-generate-preview \
+  --prompt "A cinematic scene" \
+  --json
+# Returns: {"ok": true, "jobId": "operations/abc123", "status": "processing"}
+
+# Check status later
+node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs job status \
+  --provider google \
+  --job-id "operations/abc123" \
+  --json
+# Returns: {"ok": true, "jobId": "...", "status": "completed"}
+
+# Download the result
+node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs job download \
+  --provider google \
+  --job-id "operations/abc123" \
+  --output ./outputs/video.mp4 \
+  --json
+```
+
+### Async options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--wait` | false | Block until job completes |
+| `--poll-interval` | 5000 | Milliseconds between status checks |
+| `--timeout` | 600000 | Max wait time (10 minutes) |
+
+### Async providers
+
+Google (Veo), Luma AI, Runway, Fal.ai, and Replicate all use async for video. Image and TTS are always synchronous.
+
 ## Response format
 
 Success:
