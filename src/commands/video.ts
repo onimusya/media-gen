@@ -132,7 +132,7 @@ export function createVideoCommand(): Command {
         }
 
       } catch (err) {
-        log.debug(err, 'Video generate error');
+        log.error(err, 'Video generate error');
         printResponse(toErrorResponse(err), opts.json);
         process.exitCode = 1;
       }

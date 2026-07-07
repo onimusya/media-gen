@@ -109,7 +109,7 @@ export function createImageCommand(): Command {
         printResponse(response, opts.json);
 
       } catch (err) {
-        log.debug(err, 'Image generate error');
+        log.error(err, 'Image generate error');
         printResponse(toErrorResponse(err), opts.json);
         process.exitCode = 1;
       }

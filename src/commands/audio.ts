@@ -78,7 +78,7 @@ export function createAudioCommand(): Command {
           text: result.text.substring(0, 200) + (result.text.length > 200 ? '...' : ''),
         }, opts.json);
       } catch (err) {
-        log.debug(err, 'Transcribe error');
+        log.error(err, 'Transcribe error');
         printResponse(toErrorResponse(err), opts.json);
         process.exitCode = 1;
       }

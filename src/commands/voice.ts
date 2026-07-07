@@ -87,7 +87,7 @@ export function createVoiceCommand(): Command {
         }, opts.json);
 
       } catch (err) {
-        log.debug(err, 'TTS error');
+        log.error(err, 'TTS error');
         printResponse(toErrorResponse(err), opts.json);
         process.exitCode = 1;
       }
