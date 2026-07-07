@@ -10,6 +10,7 @@ import type {
   ValidationResult,
   ImageGenerationInput,
   VideoGenerationInput,
+  TextToSpeechInput,
   MediaResult,
   AsyncMediaResult,
   JobStatusResult,
@@ -27,6 +28,7 @@ export class GoogleProvider implements FullProvider {
   capabilities: ProviderCapability[] = [
     'image-generate',
     'video-generate',
+    'voice-tts',
   ];
 
   private getApiKey(): string {
@@ -236,6 +238,91 @@ export class GoogleProvider implements FullProvider {
       sizeBytes: buffer.length,
       durationMs: Date.now() - startTime,
     };
+  }
+
+  async textToSpeech(input: TextToSpeechInput): Promise<MediaResult> {
+    const log = getLogger();
+    const startTime = Date.now();
+    const model = input.model || 'gemini-3.1-flash-tts-preview';
+    const voice = input.voiceId || 'Kore';
+
+    log.debug({ model, voice }, 'Google Gemini TTS');
+
+    const url = `${this.getBaseUrl()}/interactions`;
+    const body = {
+      model,
+      input: input.text,
+      response_format: { type: 'audio' },
+      generation_config: {
+        speech_config: [{ voice }],
+      },
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      const message = (err as Record<string, Record<string, string>>)?.error?.message || `HTTP ${response.status}`;
+      throw new MediaGenError('API_ERROR', message, { provider: 'google' });
+    }
+
+    const data = (await response.json()) as {
+      output_audio?: { data: string };
+    };
+
+    if (!data.output_audio?.data) {
+      throw new MediaGenError('API_ERROR', 'No audio data in response', { provider: 'google' });
+    }
+
+    // Output is base64-encoded PCM (24kHz, 16-bit, mono)
+    // Convert to WAV format
+    const pcmBuffer = Buffer.from(data.output_audio.data, 'base64');
+    const wavBuffer = this.pcmToWav(pcmBuffer, 24000, 1, 16);
+
+    ensureParentDir(input.outputFile);
+    writeFileSync(input.outputFile, wavBuffer);
+
+    return {
+      outputFile: input.outputFile,
+      mimeType: getMimeType(input.outputFile),
+      sizeBytes: wavBuffer.length,
+      durationMs: Date.now() - startTime,
+      metadata: { voice, model },
+    };
+  }
+
+  private pcmToWav(pcmData: Buffer, sampleRate: number, channels: number, bitDepth: number): Buffer {
+    const byteRate = sampleRate * channels * (bitDepth / 8);
+    const blockAlign = channels * (bitDepth / 8);
+    const headerSize = 44;
+    const dataSize = pcmData.length;
+    const buffer = Buffer.alloc(headerSize + dataSize);
+
+    // RIFF header
+    buffer.write('RIFF', 0);
+    buffer.writeUInt32LE(36 + dataSize, 4);
+    buffer.write('WAVE', 8);
+
+    // fmt sub-chunk
+    buffer.write('fmt ', 12);
+    buffer.writeUInt32LE(16, 16); // sub-chunk size
+    buffer.writeUInt16LE(1, 20); // PCM format
+    buffer.writeUInt16LE(channels, 22);
+    buffer.writeUInt32LE(sampleRate, 24);
+    buffer.writeUInt32LE(byteRate, 28);
+    buffer.writeUInt16LE(blockAlign, 32);
+    buffer.writeUInt16LE(bitDepth, 34);
+
+    // data sub-chunk
+    buffer.write('data', 36);
+    buffer.writeUInt32LE(dataSize, 40);
+    pcmData.copy(buffer, 44);
+
+    return buffer;
   }
 
   private sizeToAspectRatio(size: string): string {
