@@ -54,6 +54,10 @@ const ENV_KEY_MAP: Record<string, Record<string, string>> = {
 };
 
 export function getHomeConfigDir(): string {
+  // Allow override for testing
+  if (process.env.MEDIA_GEN_HOME) {
+    return process.env.MEDIA_GEN_HOME;
+  }
   return join(homedir(), '.media-gen');
 }
 
@@ -69,15 +73,14 @@ export function loadConfig(cwd?: string): MediaGenConfig {
   const workDir = cwd || process.cwd();
   const homeDir = getHomeConfigDir();
 
-  // Load .env hierarchy (lowest to highest priority):
-  // 1. ~/.media-gen/.env (user-level, shared across all projects)
-  //    Uses override:false so system env vars set by the user's shell take precedence
-  // 2. <project>/.env (project-level, overrides everything)
-  //    Uses override:true so project config is the final authority
+  // Load .env hierarchy (loaded in order, each overrides the previous):
+  // 1. ~/.media-gen/.env (user-level, overrides system env vars)
+  // 2. <project>/.env (project-level, overrides home config)
+  // Both use override:true. Since project loads last, it has final authority.
 
   const homeEnv = join(homeDir, '.env');
   if (existsSync(homeEnv)) {
-    loadDotenv({ path: homeEnv, override: false });
+    loadDotenv({ path: homeEnv, override: true });
   }
 
   const projectEnv = resolve(workDir, '.env');

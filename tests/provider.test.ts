@@ -83,23 +83,19 @@ describe('Provider Registry', () => {
 
 describe('Provider Validation', () => {
   it('openai validateConfig reports missing key when unset', async () => {
-    // validateConfig calls loadConfig which reads .env from cwd (override: true).
-    // To test "missing key", we temporarily remove it after loading so the provider check sees nothing.
     const originalKey = process.env.OPENAI_API_KEY;
+    const originalHome = process.env.MEDIA_GEN_HOME;
     delete process.env.OPENAI_API_KEY;
-
-    // Call getProviderConfig with a temp dir that has no .env
-    const { tmpdir } = await import('node:os');
-    const { resolve } = await import('node:path');
-    const tempCwd = resolve(tmpdir(), `media-gen-validation-test-${Date.now()}`);
-    const { mkdirSync } = await import('node:fs');
-    mkdirSync(tempCwd, { recursive: true });
+    // Point home to a non-existent dir so ~/.media-gen/.env doesn't load
+    process.env.MEDIA_GEN_HOME = '/tmp/media-gen-test-nonexistent';
 
     const { isProviderConfigured } = await import('../src/core/config.js');
-    const configured = isProviderConfigured('openai', tempCwd);
+    const configured = isProviderConfigured('openai', '/tmp/media-gen-test-nonexistent');
     expect(configured).toBe(false);
 
     if (originalKey) process.env.OPENAI_API_KEY = originalKey;
+    if (originalHome) process.env.MEDIA_GEN_HOME = originalHome;
+    else delete process.env.MEDIA_GEN_HOME;
   });
 
   it('openai validateConfig passes with key set', async () => {

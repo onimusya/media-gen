@@ -6,20 +6,25 @@ import { tmpdir } from 'node:os';
 
 describe('Config', () => {
   const testDir = resolve(tmpdir(), `media-gen-test-${Date.now()}`);
+  let originalHome: string | undefined;
 
   beforeEach(() => {
     mkdirSync(testDir, { recursive: true });
+    // Point home config to a non-existent dir so real ~/.media-gen/.env isn't loaded
+    originalHome = process.env.MEDIA_GEN_HOME;
+    process.env.MEDIA_GEN_HOME = resolve(testDir, '.media-gen-home');
   });
 
   afterEach(() => {
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
+    if (originalHome) process.env.MEDIA_GEN_HOME = originalHome;
+    else delete process.env.MEDIA_GEN_HOME;
   });
 
   it('loadConfig returns empty providers when no env vars or config file', () => {
     const originalEnv = { ...process.env };
-    // Clear known env vars
     delete process.env.OPENAI_API_KEY;
     delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     delete process.env.ELEVENLABS_API_KEY;
@@ -28,7 +33,6 @@ describe('Config', () => {
     expect(config.providers).toBeDefined();
     expect(typeof config.providers).toBe('object');
 
-    // Restore
     process.env = originalEnv;
   });
 
@@ -39,7 +43,6 @@ describe('Config', () => {
     const config = loadConfig(testDir);
     expect(config.providers.openai?.apiKey).toBe('test-key-12345');
 
-    // Restore
     if (originalKey) process.env.OPENAI_API_KEY = originalKey;
     else delete process.env.OPENAI_API_KEY;
   });
