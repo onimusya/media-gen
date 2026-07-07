@@ -25,6 +25,7 @@ export interface MediaGenConfig {
     videoModel?: string;
     voiceProvider?: string;
     voiceModel?: string;
+    voiceId?: string;
     audioProvider?: string;
     audioModel?: string;
   };
@@ -279,4 +280,16 @@ export function resolveProvider(cliProvider: string | undefined, mediaType: Medi
 export function resolveModel(cliModel: string | undefined, mediaType: MediaType, cwd?: string): string | undefined {
   if (cliModel) return cliModel;
   return getDefaults(mediaType, cwd).model;
+}
+
+/**
+ * Resolve voice ID for TTS commands.
+ * Priority: CLI arg > MEDIA_GEN_VOICE_ID env var > config file defaults.voiceId
+ */
+export function resolveVoiceId(cliVoiceId: string | undefined, cwd?: string): string | undefined {
+  if (cliVoiceId) return cliVoiceId;
+  const envVoiceId = process.env['MEDIA_GEN_VOICE_ID'];
+  if (envVoiceId) return envVoiceId;
+  const config = loadConfig(cwd);
+  return config.defaults?.voiceId || undefined;
 }

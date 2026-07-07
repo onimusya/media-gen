@@ -8,7 +8,7 @@ import { resolveOutputPath, checkOverwrite, ensureOutputDir, writeMetadata, prin
 import { MediaGenError, toErrorResponse } from '../core/errors.js';
 import { getLogger } from '../core/logger.js';
 import { validateFileExists } from '../core/validation.js';
-import { resolveProvider, resolveModel } from '../core/config.js';
+import { resolveProvider, resolveModel, resolveVoiceId } from '../core/config.js';
 
 export function createVoiceCommand(): Command {
   const voice = new Command('voice').description('Voice synthesis and cloning');
@@ -16,8 +16,8 @@ export function createVoiceCommand(): Command {
   voice
     .command('tts')
     .description('Convert text to speech')
-    .option('--provider <provider>', 'Provider (e.g., openai, elevenlabs, azure)')
-    .requiredOption('--voice-id <id>', 'Voice ID to use')
+    .option('--provider <provider>', 'Provider (e.g., openai, elevenlabs, edge-tts, azure)')
+    .option('--voice-id <id>', 'Voice ID to use (or set MEDIA_GEN_VOICE_ID in .env)')
     .requiredOption('--text <text>', 'Text to convert to speech')
     .option('--model <model>', 'TTS model')
     .option('--speed <speed>', 'Playback speed multiplier')
@@ -35,9 +35,14 @@ export function createVoiceCommand(): Command {
       try {
         const providerName = resolveProvider(opts.provider, 'voice');
         const model = resolveModel(opts.model, 'voice');
+        const voiceId = resolveVoiceId(opts.voiceId);
 
         if (!providerName) {
           throw new MediaGenError('INVALID_INPUT', 'No provider specified. Use --provider or set MEDIA_GEN_DEFAULT_PROVIDER / MEDIA_GEN_VOICE_PROVIDER in .env');
+        }
+
+        if (!voiceId) {
+          throw new MediaGenError('INVALID_INPUT', 'No voice ID specified. Use --voice-id or set MEDIA_GEN_VOICE_ID in .env');
         }
 
         const ext = opts.format || 'mp3';
@@ -47,7 +52,7 @@ export function createVoiceCommand(): Command {
         );
 
         if (opts.dryRun) {
-          printResponse({ ok: true, type: 'tts', provider: providerName, model, outputFile, dryRun: true }, opts.json);
+          printResponse({ ok: true, type: 'tts', provider: providerName, model, voiceId, outputFile, dryRun: true }, opts.json);
           return;
         }
 
@@ -64,7 +69,7 @@ export function createVoiceCommand(): Command {
 
         const result = await provider.textToSpeech({
           text: opts.text,
-          voiceId: opts.voiceId,
+          voiceId,
           model,
           speed: opts.speed ? parseFloat(opts.speed) : undefined,
           format: opts.format,
@@ -75,7 +80,7 @@ export function createVoiceCommand(): Command {
         if (opts.metadata) {
           metadataFile = writeMetadata(outputFile, {
             provider: providerName, model, type: 'tts',
-            input: { text: opts.text, voiceId: opts.voiceId },
+            input: { text: opts.text, voiceId },
             outputFile: result.outputFile, createdAt: new Date().toISOString(),
             durationMs: result.durationMs,
           });
