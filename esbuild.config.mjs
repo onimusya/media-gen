@@ -8,8 +8,9 @@ await build({
   target: 'node18',
   format: 'esm',
   outfile: 'dist/media-gen.mjs',
-  minify: false,
-  sourcemap: true,
+  minify: true,
+  sourcemap: false,
+  legalComments: 'none',
   banner: {
     js: `#!/usr/bin/env node
 import { createRequire } from 'module';
@@ -19,6 +20,9 @@ const require = createRequire(import.meta.url);
   define: {
     'process.env.NODE_ENV': '"production"',
   },
+  mangleProps: /_$/,
+  treeShaking: true,
+  drop: ['debugger'],
   logLevel: 'info',
 });
 
