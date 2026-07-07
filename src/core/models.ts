@@ -10,6 +10,7 @@ import defaultModels from '../models.json' with { type: 'json' };
 
 export interface ProviderModels {
   models: string[];
+  voiceIds?: string[];
   capabilities: Record<string, string[]>;
 }
 

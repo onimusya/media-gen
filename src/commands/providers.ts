@@ -32,6 +32,7 @@ export function createProvidersCommand(): Command {
           configured: isProviderConfigured(p.id),
           capabilities: p.capabilities,
           models: modelsConfig[p.id]?.models || [],
+          voiceIds: modelsConfig[p.id]?.voiceIds || [],
         }))
         .filter((p) => !opts.configured || p.configured);
 
@@ -45,6 +46,9 @@ export function createProvidersCommand(): Command {
           console.log(`    Capabilities: ${p.capabilities.join(', ')}`);
           if (p.models.length > 0) {
             console.log(`    Models: ${p.models.join(', ')}`);
+          }
+          if (p.voiceIds.length > 0) {
+            console.log(`    Voices: ${p.voiceIds.join(', ')}`);
           }
         }
         console.log(`\n  Total: ${data.length} providers (${data.filter((p) => p.configured).length} configured)`);
@@ -70,20 +74,32 @@ export function createProvidersCommand(): Command {
           models = entry?.models || [];
         }
 
+        const voiceIds = entry?.voiceIds || [];
+
         if (opts.json) {
-          console.log(JSON.stringify({ ok: true, provider: opts.provider, models }, null, 2));
+          const result: Record<string, unknown> = { ok: true, provider: opts.provider, models };
+          if (voiceIds.length > 0) result.voiceIds = voiceIds;
+          console.log(JSON.stringify(result, null, 2));
         } else {
-          console.log(`Models for ${opts.provider}:\n`);
-          for (const m of models) {
-            console.log(`  - ${m}`);
+          if (models.length > 0) {
+            console.log(`Models for ${opts.provider}:\n`);
+            for (const m of models) {
+              console.log(`  - ${m}`);
+            }
           }
-          if (models.length === 0) {
-            console.log('  No predefined models. Check provider documentation.');
+          if (voiceIds.length > 0) {
+            console.log(`Voices for ${opts.provider}:\n`);
+            for (const v of voiceIds) {
+              console.log(`  - ${v}`);
+            }
+          }
+          if (models.length === 0 && voiceIds.length === 0) {
+            console.log(`  No predefined models or voices. Check provider documentation.`);
           }
         }
       } else {
         // All providers
-        const allData: Record<string, { models: string[]; configured: boolean }> = {};
+        const allData: Record<string, { models: string[]; voiceIds: string[]; configured: boolean }> = {};
         for (const p of listProviders()) {
           const entry = modelsConfig[p.id];
           let models: string[];
@@ -94,8 +110,10 @@ export function createProvidersCommand(): Command {
             models = entry?.models || [];
           }
 
-          if (models.length > 0 || !opts.capability) {
-            allData[p.id] = { models, configured: isProviderConfigured(p.id) };
+          const voiceIds = entry?.voiceIds || [];
+
+          if (models.length > 0 || voiceIds.length > 0 || !opts.capability) {
+            allData[p.id] = { models, voiceIds, configured: isProviderConfigured(p.id) };
           }
         }
 
@@ -109,7 +127,13 @@ export function createProvidersCommand(): Command {
             for (const m of info.models) {
               console.log(`      ${m}`);
             }
-            if (info.models.length === 0) {
+            if (info.voiceIds.length > 0) {
+              console.log(`    Voices:`);
+              for (const v of info.voiceIds) {
+                console.log(`      ${v}`);
+              }
+            }
+            if (info.models.length === 0 && info.voiceIds.length === 0) {
               console.log('      (no predefined models)');
             }
           }
