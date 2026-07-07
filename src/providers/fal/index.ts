@@ -116,16 +116,47 @@ export class FalProvider implements FullProvider {
     }
 
     const data = (await response.json()) as { request_id: string; status_url: string };
+    // Store model:request_id so status/download can reconstruct the URL
     return {
-      jobId: data.request_id,
+      jobId: `${model}::${data.request_id}`,
       provider: 'fal',
       status: 'processing',
       statusUrl: data.status_url,
     };
   }
 
+  private parseJobId(jobId: string): { model: string; requestId: string } {
+    const sep = jobId.indexOf('::');
+    if (sep === -1) {
+      // Legacy format: just request_id, assume default model
+      return { model: 'fal-ai/minimax-video-01', requestId: jobId };
+    }
+    return { model: jobId.substring(0, sep), requestId: jobId.substring(sep + 2) };
+  }
+
+  /**
+   * Extract the base model path for queue status/result URLs.
+   * Fal queue endpoints use just the model owner/name without the endpoint suffix.
+   * e.g., "bytedance/seedance-2.0/text-to-video" -> "bytedance/seedance-2.0"
+   *        "fal-ai/minimax-video-01" -> "fal-ai/minimax-video-01" (no change)
+   */
+  private getQueueModel(model: string): string {
+    // Known suffixes that should be stripped for queue URLs
+    const suffixes = ['/text-to-video', '/image-to-video', '/fast/text-to-video', '/mini/text-to-video'];
+    for (const suffix of suffixes) {
+      if (model.endsWith(suffix)) {
+        return model.slice(0, -suffix.length);
+      }
+    }
+    return model;
+  }
+
   async getJobStatus(jobId: string): Promise<JobStatusResult> {
-    const response = await fetch(`https://queue.fal.run/requests/${jobId}/status`, {
+    const { model, requestId } = this.parseJobId(jobId);
+    // Fal queue status URL uses the base model path (without endpoint suffix like /text-to-video)
+    // Extract the base: e.g., "bytedance/seedance-2.0/text-to-video" -> "bytedance/seedance-2.0"
+    const baseModel = this.getQueueModel(model);
+    const response = await fetch(`https://queue.fal.run/${baseModel}/requests/${requestId}/status`, {
       headers: this.getHeaders(),
     });
 
@@ -150,7 +181,9 @@ export class FalProvider implements FullProvider {
 
   async downloadJob(jobId: string, outputFile: string): Promise<MediaResult> {
     const startTime = Date.now();
-    const response = await fetch(`https://queue.fal.run/requests/${jobId}`, {
+    const { model, requestId } = this.parseJobId(jobId);
+    const baseModel = this.getQueueModel(model);
+    const response = await fetch(`https://queue.fal.run/${baseModel}/requests/${requestId}`, {
       headers: this.getHeaders(),
     });
 
