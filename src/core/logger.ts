@@ -1,7 +1,8 @@
 /**
  * Structured logger for media-gen-cli.
- * - Silent mode (default): errors only written to log file
- * - Debug mode (--debug): verbose to stderr AND log file
+ * - Log level configurable via MEDIA_GEN_LOG_LEVEL env var
+ * - Levels: silent, error, warn, info, debug, trace
+ * - --debug flag overrides to 'debug' level with stderr pretty-printing
  * - Log files are stored at ~/.media-gen/logs/
  */
 
@@ -13,6 +14,10 @@ import { homedir } from 'node:os';
 let logger: pino.Logger;
 let debugMode = false;
 let logFilePath: string;
+
+type LogLevel = 'silent' | 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
+
+const VALID_LEVELS: LogLevel[] = ['silent', 'fatal', 'error', 'warn', 'info', 'debug', 'trace'];
 
 function getLogDir(): string {
   return join(homedir(), '.media-gen', 'logs');
@@ -33,14 +38,30 @@ function getLogFile(): string {
   return logFilePath;
 }
 
+function resolveLogLevel(debug: boolean): LogLevel {
+  // --debug flag always forces debug level
+  if (debug) return 'debug';
+
+  // Check env var
+  const envLevel = process.env.MEDIA_GEN_LOG_LEVEL?.toLowerCase() as LogLevel | undefined;
+  if (envLevel && VALID_LEVELS.includes(envLevel)) {
+    return envLevel;
+  }
+
+  // Default: error (only errors get logged to file)
+  return 'error';
+}
+
 export function initLogger(debug: boolean): void {
   debugMode = debug;
   ensureLogDir();
 
+  const level = resolveLogLevel(debug);
+
   if (debug) {
     // Debug mode: pretty-print to stderr
     logger = pino({
-      level: 'debug',
+      level,
       transport: {
         target: 'pino-pretty',
         options: {
@@ -60,10 +81,8 @@ export function initLogger(debug: boolean): void {
         } catch { /* ignore */ }
       },
     };
-    // Create a secondary file logger
-    const fileLogger = pino({ level: 'debug' }, fileWriter);
+    const fileLogger = pino({ level }, fileWriter);
 
-    // Wrap logger methods to also write to file
     const origDebug = logger.debug.bind(logger);
     const origInfo = logger.info.bind(logger);
     const origWarn = logger.warn.bind(logger);
@@ -89,7 +108,7 @@ export function initLogger(debug: boolean): void {
       (fileLogger.error as Function)(...args);
     }) as typeof logger.error;
   } else {
-    // Silent mode: only log errors to file (no console output)
+    // Non-debug mode: log to file only at configured level
     const fileWriter = {
       write(msg: string): void {
         try {
@@ -97,7 +116,7 @@ export function initLogger(debug: boolean): void {
         } catch { /* ignore */ }
       },
     };
-    logger = pino({ level: 'error' }, fileWriter);
+    logger = pino({ level }, fileWriter);
   }
 }
 
