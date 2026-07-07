@@ -1,8 +1,14 @@
 # media-gen-cli
 
-A production-ready CLI for multi-provider media generation. Generate images, videos, voice, and transcriptions through OpenAI, Google, Azure, ElevenLabs, Deepgram, Fal.ai, Luma AI, Replicate, Stability AI, Runway, OpenRouter, and Microsoft Edge TTS — all from a single interface.
+A production-ready CLI for multi-provider media generation. Generate images, videos, voice, and transcriptions through OpenAI, Google, Azure, ElevenLabs, Deepgram, Fal.ai, Luma AI, Replicate, Stability AI, Runway, OpenRouter, MiniMax, and Microsoft Edge TTS — all from a single interface.
 
 Designed for both direct human use and AI agent integration.
+
+## Prerequisites
+
+- **Node.js 18+** — [Download](https://nodejs.org/)
+- **npm** — comes with Node.js
+- At least one provider API key (or use Edge TTS which is free, no key needed)
 
 ## Installation
 
