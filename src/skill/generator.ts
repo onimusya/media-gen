@@ -6,8 +6,8 @@
 export function generateSkillContent(): string {
   return `---
 name: media-generation
-description: Generate and edit images, create videos, synthesize speech, transcribe and translate audio using multiple AI providers (OpenAI, Google, ElevenLabs, Deepgram, Fal, Luma, Replicate, Stability, Runway, OpenRouter). Use when the user asks to create media assets, generate pictures, make videos, produce voiceovers, transcribe recordings, or work with any visual/audio content.
-compatibility: Requires Node.js 18+ and at least one provider API key configured in .env
+description: Generate and edit images, create videos, synthesize speech, transcribe and translate audio using multiple AI providers (OpenAI, Google, ElevenLabs, Deepgram, Fal, Luma, Replicate, Stability, Runway, OpenRouter, Edge TTS). Use when the user asks to create media assets, generate pictures, make videos, produce voiceovers, transcribe recordings, or work with any visual/audio content.
+compatibility: Requires Node.js 18+ and at least one provider API key configured in .env (Edge TTS is free, no key needed)
 metadata:
   author: Francis Hor <francishoe@gmail.com>
   version: "1.0"
@@ -36,23 +36,26 @@ node ./skills/media-generation/scripts/media-gen.mjs <command> [options] --json
 | \`voice isolate\` | Isolate voice from background audio |
 | \`audio transcribe\` | Transcribe audio to text |
 | \`audio translate\` | Translate audio to another language |
-| \`providers list\` | List providers, capabilities, models |
-| \`providers models\` | List models (optionally by capability) |
+| \`providers list\` | List all providers with capabilities, models, and voices |
+| \`providers models\` | List all models across all providers |
+| \`providers models --provider <id>\` | List models/voices for a specific provider |
+| \`config init\` | Initialize project-level config |
+| \`config init --global\` | Initialize user-level config at ~/.media-gen/ |
 | \`config validate\` | Check which providers are configured |
 | \`job status\` | Check async job status |
 | \`job download\` | Download completed async job result |
 
 ## Configuration
 
-Defaults are set via \`.env\` at project root. With defaults configured, \`--provider\` and \`--model\` are optional:
+Defaults are set via \`.env\` (project root or ~/.media-gen/.env for global):
 
 \`\`\`
 MEDIA_GEN_DEFAULT_PROVIDER=openrouter
 MEDIA_GEN_DEFAULT_MODEL=openai/gpt-image-2
+MEDIA_GEN_VOICE_PROVIDER=edge-tts
+MEDIA_GEN_VOICE_ID=en-US-EmmaMultilingualNeural
 MEDIA_GEN_VIDEO_PROVIDER=google
 MEDIA_GEN_VIDEO_MODEL=veo-3.1-generate-preview
-MEDIA_GEN_VOICE_PROVIDER=elevenlabs
-MEDIA_GEN_VOICE_MODEL=eleven_v3
 MEDIA_GEN_AUDIO_PROVIDER=deepgram
 MEDIA_GEN_AUDIO_MODEL=nova-3
 \`\`\`
@@ -68,28 +71,32 @@ node ./skills/media-generation/scripts/media-gen.mjs image generate \\
   --json
 \`\`\`
 
-### Video generation (wait for result)
-
-\`\`\`bash
-node ./skills/media-generation/scripts/media-gen.mjs video generate \\
-  --provider google \\
-  --model veo-3.1-generate-preview \\
-  --prompt "A cinematic card pack opening" \\
-  --duration 8 \\
-  --output ./outputs/video.mp4 \\
-  --wait \\
-  --json
-\`\`\`
-
-### Text to speech
+### Text to speech (Edge TTS - free)
 
 \`\`\`bash
 node ./skills/media-generation/scripts/media-gen.mjs voice tts \\
-  --provider elevenlabs \\
-  --voice-id JBFqnCBsd6RMkjVDRZzb \\
+  --provider edge-tts \\
+  --voice-id en-US-EmmaMultilingualNeural \\
   --text "Hello world" \\
   --output ./outputs/voice.mp3 \\
   --json
+\`\`\`
+
+### Text to speech (with defaults, minimal)
+
+\`\`\`bash
+node ./skills/media-generation/scripts/media-gen.mjs voice tts \\
+  --text "Just provide text" \\
+  --output ./outputs/speech.mp3 \\
+  --json
+\`\`\`
+
+### List providers and voices
+
+\`\`\`bash
+node ./skills/media-generation/scripts/media-gen.mjs providers list --json
+node ./skills/media-generation/scripts/media-gen.mjs providers models --provider edge-tts --json
+node ./skills/media-generation/scripts/media-gen.mjs providers models --provider elevenlabs --json
 \`\`\`
 
 ### Transcription
@@ -101,25 +108,6 @@ node ./skills/media-generation/scripts/media-gen.mjs audio transcribe \\
   --json
 \`\`\`
 
-### Dry run (validate without calling API)
-
-\`\`\`bash
-node ./skills/media-generation/scripts/media-gen.mjs image generate \\
-  --prompt "test" --dry-run --json
-\`\`\`
-
-## Response format
-
-Success:
-\`\`\`json
-{"ok": true, "type": "image", "provider": "openai", "model": "gpt-image-2", "outputFile": "./outputs/image.png", "durationMs": 1200}
-\`\`\`
-
-Error:
-\`\`\`json
-{"ok": false, "error": {"code": "PROVIDER_NOT_CONFIGURED", "message": "Missing OPENAI_API_KEY", "suggestion": "Set OPENAI_API_KEY in .env"}}
-\`\`\`
-
 ## Rules
 
 - Use \`--json\` for all calls.
@@ -129,5 +117,6 @@ Error:
 - For video, use \`--wait\` only when the user wants the file immediately.
 - Check the \`ok\` field in every response before proceeding.
 - On error, show the \`suggestion\` field to the user.
+- Edge TTS is free and requires no API key.
 `;
 }

@@ -90,7 +90,7 @@ OPENROUTER_API_KEY=
 
 ### Default Provider & Model
 
-Set defaults so `--provider` and `--model` are optional:
+Set defaults so `--provider`, `--model`, and `--voice-id` are optional:
 
 ```bash
 # Global defaults
@@ -103,9 +103,12 @@ MEDIA_GEN_IMAGE_MODEL=openai/gpt-image-2
 MEDIA_GEN_VIDEO_PROVIDER=google
 MEDIA_GEN_VIDEO_MODEL=veo-3.1-generate-preview
 MEDIA_GEN_VOICE_PROVIDER=edge-tts
-MEDIA_GEN_VOICE_MODEL=en-US-EmmaMultilingualNeural
+MEDIA_GEN_VOICE_ID=en-US-EmmaMultilingualNeural
 MEDIA_GEN_AUDIO_PROVIDER=deepgram
 MEDIA_GEN_AUDIO_MODEL=nova-3
+
+# Log level (silent, error, warn, info, debug, trace)
+MEDIA_GEN_LOG_LEVEL=error
 ```
 
 ## Quick Start
@@ -126,10 +129,26 @@ media-gen voice tts \
   --text "Hello from media-gen!" \
   --output ./outputs/hello.mp3
 
+# Google Gemini TTS (30 voices, controllable style):
+media-gen voice tts \
+  --provider google \
+  --model gemini-3.1-flash-tts-preview \
+  --voice-id Kore \
+  --text "Say cheerfully: Have a wonderful day!" \
+  --output ./outputs/gemini.wav
+
 # Transcribe audio:
 media-gen audio transcribe \
   --provider deepgram --input ./audio/meeting.mp3 \
   --output ./outputs/transcript.json
+
+# List all providers with their models and voices:
+media-gen providers list
+
+# List voices for a specific TTS provider:
+media-gen providers models --provider elevenlabs
+media-gen providers models --provider edge-tts
+media-gen providers models --provider google
 ```
 
 ## CLI Commands
@@ -146,8 +165,8 @@ media-gen audio transcribe \
 | `voice isolate` | Isolate voice from background |
 | `audio transcribe` | Transcribe audio to text |
 | `audio translate` | Translate audio to another language |
-| `providers list` | List all providers with models |
-| `providers models` | List models (filter by provider/capability) |
+| `providers list` | List all providers with models and voices |
+| `providers models` | List models/voices (filter by provider/capability) |
 | `config init` | Initialize configuration (`--global` for user-level) |
 | `config validate` | Validate provider configuration |
 | `skill generate` | Generate AI agent SKILL.md file |
@@ -168,7 +187,7 @@ media-gen audio transcribe \
 | Provider | Image | Video | TTS | Transcribe | Translate | Voice Clone | Voice Isolate |
 |----------|-------|-------|-----|------------|-----------|-------------|---------------|
 | OpenAI | ✓ | | ✓ | ✓ | ✓ | | |
-| Google | ✓ | ✓ | | | | | |
+| Google | ✓ | ✓ | ✓ | | | | |
 | Azure | ✓ | | ✓ | ✓ | ✓ | | |
 | ElevenLabs | | | ✓ | | | ✓ | ✓ |
 | Deepgram | | | | ✓ | ✓ | | |

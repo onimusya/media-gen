@@ -3,6 +3,7 @@
 media-gen voice tts \
   --provider elevenlabs \
   --voice-id JBFqnCBsd6RMkjVDRZzb \
+  --model eleven_multilingual_v2 \
   --text "Welcome to Fantasy Football World. Get ready for an epic season!" \
   --output ./outputs/welcome.mp3 \
   --json

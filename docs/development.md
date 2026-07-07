@@ -39,7 +39,7 @@ media-gen-cli/
    - Config JSON: `~/.media-gen/config.json` (base) merged with `<project>/.media-gen/config.json` (overrides per-provider)
    - Environment variables from .env loading overlay on top of config.json values
 
-5. **Default provider/model resolution**: CLI arg > type-specific env var (`MEDIA_GEN_IMAGE_PROVIDER`) > global env var (`MEDIA_GEN_DEFAULT_PROVIDER`) > config file defaults.
+5. **Default provider/model/voice resolution**: CLI arg > type-specific env var (`MEDIA_GEN_IMAGE_PROVIDER`, `MEDIA_GEN_VOICE_ID`) > global env var (`MEDIA_GEN_DEFAULT_PROVIDER`) > config file defaults.
 
 6. **Models config**: `src/models.json` is the built-in model registry bundled at build time. Users can override per-provider by creating `.media-gen/models.json`.
 
@@ -58,6 +58,9 @@ media-gen-cli/
 - Uses `/v1/images/generations` for image gen (returns b64_json or url)
 - Uses `/v1/images/edits` with FormData for image editing
 - TTS at `/v1/audio/speech`, transcription at `/v1/audio/transcriptions`
+- TTS voices: alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer, verse, marin, cedar (13 total)
+- Recommended TTS voices: `marin`, `cedar` (best quality)
+- `tts-1`/`tts-1-hd` support 9 voices (subset); `gpt-4o-mini-tts` supports all 13
 - Models: `gpt-image-2` (latest, April 2026), `gpt-image-1`, `gpt-4o-mini-tts`, `whisper-1`
 - DALL-E 3 was retired March 2026
 
@@ -66,6 +69,10 @@ media-gen-cli/
 - Auth: `x-goog-api-key` header (NOT `?key=` query param)
 - Image: `/models/{model}:predict`
 - Video: `/models/{model}:predictLongRunning` (returns operation name)
+- TTS: `POST /interactions` with `response_format: {type: "audio"}` and `speech_config`
+- TTS Models: `gemini-3.1-flash-tts-preview`, `gemini-2.5-flash-preview-tts`, `gemini-2.5-pro-preview-tts`
+- TTS Voices: Kore, Puck, Zephyr, Charon, Fenrir, Aoede, etc. (30 voices)
+- TTS Output: base64 PCM 24kHz/16-bit mono, wrapped in WAV headers
 - Job status: `GET ${BASE_URL}/${operation_name}` with API key header
 - Video download: response contains `generateVideoResponse.generatedSamples[0].video.uri`
 - Download requires `x-goog-api-key` header and redirect following
@@ -86,6 +93,9 @@ media-gen-cli/
 - Voice isolation: `POST /v1/audio-isolation` with FormData
 - Auth: `xi-api-key` header
 - Latest model: `eleven_v3` (GA March 2026)
+- Premade voices (free plan): 21 voices fetched from `/v1/voices` API
+- Voice IDs listed in models.json as `voiceId:Name (premade)` format
+- Only `category: "premade"` voices are available on the free plan
 
 ### Deepgram
 - Transcription: `POST /v1/listen?model=nova-3` with audio buffer body
