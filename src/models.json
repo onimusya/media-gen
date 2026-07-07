@@ -164,15 +164,16 @@
       "fal-ai/flux-kontext/pro",
       "fal-ai/seedream-4.5",
       "fal-ai/veo-3.1",
-      "fal-ai/seedance-2.0",
+      "bytedance/seedance-2.0/fast/text-to-video",
+      "fal-ai/bytedance/seedance/v1.5/pro/text-to-video",
       "fal-ai/kling-video/v3.0/pro",
       "fal-ai/minimax/video-01"
     ],
     "capabilities": {
       "image-generate": ["fal-ai/flux-2/pro", "fal-ai/flux-2/max", "fal-ai/flux-pro/v1.1", "fal-ai/flux/dev", "fal-ai/flux-realism", "fal-ai/seedream-4.5"],
       "image-edit": ["fal-ai/flux-kontext/pro", "fal-ai/flux-2/pro"],
-      "video-generate": ["fal-ai/veo-3.1", "fal-ai/seedance-2.0", "fal-ai/kling-video/v3.0/pro", "fal-ai/minimax/video-01"],
-      "video-image-to-video": ["fal-ai/seedance-2.0", "fal-ai/kling-video/v3.0/pro"]
+      "video-generate": ["fal-ai/veo-3.1", "bytedance/seedance-2.0/fast/text-to-video", "fal-ai/bytedance/seedance/v1.5/pro/text-to-video", "fal-ai/kling-video/v3.0/pro", "fal-ai/minimax/video-01"],
+      "video-image-to-video": ["fal-ai/bytedance/seedance/v1.5/pro/image-to-video", "fal-ai/kling-video/v3.0/pro"]
     }
   },
   "luma": {
