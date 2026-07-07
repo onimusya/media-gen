@@ -262,6 +262,34 @@
       ]
     }
   },
+  "minimax": {
+    "models": [
+      "MiniMax-Hailuo-2.3",
+      "MiniMax-Hailuo-2.3Fast",
+      "MiniMax-Hailuo-02",
+      "T2V-01-Director",
+      "T2V-01",
+      "speech-2.8-hd",
+      "speech-2.8-turbo",
+      "speech-2.6-hd",
+      "speech-2.6-turbo"
+    ],
+    "voiceIds": [
+      "English_expressive_narrator",
+      "English_calm_female",
+      "English_storyteller_male",
+      "English_conversational_female",
+      "English_news_anchor_male",
+      "Chinese_expressive_narrator",
+      "Chinese_calm_female",
+      "Chinese_storyteller_male"
+    ],
+    "capabilities": {
+      "video-generate": ["MiniMax-Hailuo-2.3", "MiniMax-Hailuo-02", "T2V-01-Director", "T2V-01"],
+      "video-image-to-video": ["MiniMax-Hailuo-2.3", "MiniMax-Hailuo-2.3Fast", "MiniMax-Hailuo-02"],
+      "voice-tts": ["speech-2.8-hd", "speech-2.8-turbo", "speech-2.6-hd", "speech-2.6-turbo"]
+    }
+  },
   "edge-tts": {
     "models": [],
     "voiceIds": [
