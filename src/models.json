@@ -10,6 +10,21 @@
       "gpt-4o-transcribe",
       "gpt-4o-mini-transcribe"
     ],
+    "voiceIds": [
+      "alloy",
+      "ash",
+      "ballad",
+      "coral",
+      "echo",
+      "fable",
+      "nova",
+      "onyx",
+      "sage",
+      "shimmer",
+      "verse",
+      "marin",
+      "cedar"
+    ],
     "capabilities": {
       "image-generate": ["gpt-image-2", "gpt-image-1"],
       "image-edit": ["gpt-image-2", "gpt-image-1"],
