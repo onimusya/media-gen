@@ -4,13 +4,11 @@ node_modules/
 # Build output
 dist/
 
-# Built CLI copy in skills (regenerated on build)
-skills/media-generation/scripts/media-gen.mjs
-
 # Environment variables (contains secrets)
 .env
 .env.local
 .env.*.local
+.env.bak
 
 # Config with potential secrets
 .media-gen/
