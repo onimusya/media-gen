@@ -9,19 +9,21 @@ import type {
   ValidationResult,
   TranscriptionInput,
   TranslationInput,
+  TextToSpeechInput,
   TextResult,
+  MediaResult,
 } from '../../core/provider.js';
 import { MediaGenError } from '../../core/errors.js';
 import { getProviderConfig } from '../../core/config.js';
 import { getLogger } from '../../core/logger.js';
 import { ensureParentDir } from '../../utils/fs.js';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, statSync } from 'node:fs';
 import { getMimeType } from '../../utils/mime.js';
 
 export class DeepgramProvider implements FullProvider {
   id = 'deepgram';
   name = 'Deepgram';
-  capabilities: ProviderCapability[] = ['audio-transcribe', 'audio-translate'];
+  capabilities: ProviderCapability[] = ['audio-transcribe', 'audio-translate', 'voice-tts'];
 
   private getApiKey(): string {
     const config = getProviderConfig('deepgram');
@@ -39,6 +41,45 @@ export class DeepgramProvider implements FullProvider {
     const errors: string[] = [];
     if (!config?.apiKey) errors.push('DEEPGRAM_API_KEY is not set');
     return { valid: errors.length === 0, errors, warnings: [] };
+  }
+
+  async textToSpeech(input: TextToSpeechInput): Promise<MediaResult> {
+    const log = getLogger();
+    const startTime = Date.now();
+    // Voice ID is the full model name, e.g. "aura-2-thalia-en"
+    const voiceModel = input.voiceId || 'aura-2-thalia-en';
+
+    log.debug({ voiceModel }, 'Deepgram TTS');
+
+    const response = await fetch(
+      `https://api.deepgram.com/v1/speak?model=${voiceModel}`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Token ${this.getApiKey()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: input.text }),
+      },
+    );
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      const message = (err as Record<string, string>)?.err_msg || `HTTP ${response.status}`;
+      throw new MediaGenError('API_ERROR', message, { provider: 'deepgram' });
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    ensureParentDir(input.outputFile);
+    writeFileSync(input.outputFile, buffer);
+
+    return {
+      outputFile: input.outputFile,
+      mimeType: getMimeType(input.outputFile),
+      sizeBytes: statSync(input.outputFile).size,
+      durationMs: Date.now() - startTime,
+      metadata: { voiceModel },
+    };
   }
 
   async transcribe(input: TranscriptionInput): Promise<TextResult> {

@@ -160,11 +160,35 @@
       "nova-2",
       "nova",
       "enhanced",
-      "base"
+      "base",
+      "aura-2",
+      "aura"
+    ],
+    "voiceIds": [
+      "aura-2-thalia-en",
+      "aura-2-andromeda-en",
+      "aura-2-helena-en",
+      "aura-2-apollo-en",
+      "aura-2-arcas-en",
+      "aura-2-aries-en",
+      "aura-2-asteria-en",
+      "aura-2-athena-en",
+      "aura-2-atlas-en",
+      "aura-2-aurora-en",
+      "aura-2-draco-en",
+      "aura-2-luna-en",
+      "aura-2-orion-en",
+      "aura-2-neptune-en",
+      "aura-2-lara-de",
+      "aura-2-julius-de",
+      "aura-2-livia-it",
+      "aura-2-fujin-ja",
+      "aura-2-izanami-ja"
     ],
     "capabilities": {
       "audio-transcribe": ["nova-3", "nova-3-medical", "nova-2", "nova", "enhanced", "base"],
-      "audio-translate": ["nova-3", "nova-2"]
+      "audio-translate": ["nova-3", "nova-2"],
+      "voice-tts": ["aura-2", "aura"]
     }
   },
   "fal": {
