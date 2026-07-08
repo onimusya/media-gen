@@ -265,12 +265,26 @@
       "gen4.5",
       "gen4_turbo",
       "gen4",
+      "gen4_image",
+      "gen4_image_turbo",
+      "gen3a_turbo",
       "aleph-2.0",
-      "gen3a_turbo"
+      "veo3",
+      "veo3.1",
+      "seedance2",
+      "seedance2_fast",
+      "seedance2_mini",
+      "happyhorse_1_0",
+      "gemini_omni_flash",
+      "gemini_image3_pro",
+      "gemini_image3.1_flash",
+      "gemini_2.5_flash",
+      "gpt_image_2"
     ],
     "capabilities": {
-      "video-generate": ["gen4.5", "gen4_turbo", "gen4", "aleph-2.0", "gen3a_turbo"],
-      "video-image-to-video": ["gen4.5", "gen4_turbo", "gen4", "aleph-2.0"]
+      "image-generate": ["gen4_image", "gen4_image_turbo", "gemini_image3_pro", "gemini_image3.1_flash", "gemini_2.5_flash", "gpt_image_2"],
+      "video-generate": ["gen4.5", "veo3", "veo3.1", "seedance2", "seedance2_fast", "seedance2_mini", "happyhorse_1_0", "gemini_omni_flash"],
+      "video-image-to-video": ["gen4.5", "gen4_turbo", "gen3a_turbo", "veo3", "veo3.1", "seedance2", "seedance2_fast", "seedance2_mini", "happyhorse_1_0", "gemini_omni_flash"]
     }
   },
   "openrouter": {

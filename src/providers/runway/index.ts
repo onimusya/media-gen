@@ -7,6 +7,7 @@ import type {
   FullProvider,
   ProviderCapability,
   ValidationResult,
+  ImageGenerationInput,
   VideoGenerationInput,
   ImageToVideoInput,
   AsyncMediaResult,
@@ -24,7 +25,7 @@ import { readFileSync, statSync } from 'node:fs';
 export class RunwayProvider implements FullProvider {
   id = 'runway';
   name = 'Runway';
-  capabilities: ProviderCapability[] = ['video-generate', 'video-image-to-video'];
+  capabilities: ProviderCapability[] = ['image-generate', 'video-generate', 'video-image-to-video'];
 
   private getApiKey(): string {
     const config = getProviderConfig('runway');
@@ -50,6 +51,69 @@ export class RunwayProvider implements FullProvider {
     const errors: string[] = [];
     if (!config?.apiKey) errors.push('RUNWAY_API_KEY is not set');
     return { valid: errors.length === 0, errors, warnings: [] };
+  }
+
+  async generateImage(input: ImageGenerationInput): Promise<MediaResult> {
+    const log = getLogger();
+    const startTime = Date.now();
+    const model = input.model || 'gen4_image';
+    log.debug({ model, prompt: input.prompt }, 'Runway image generation');
+
+    const body: Record<string, unknown> = {
+      model,
+      promptText: input.prompt,
+    };
+    if (input.size) body.ratio = this.sizeToRatio(input.size);
+
+    const response = await fetch('https://api.dev.runwayml.com/v1/text_to_image', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      const message = (err as Record<string, string>)?.error || `HTTP ${response.status}`;
+      throw new MediaGenError('API_ERROR', message, { provider: 'runway' });
+    }
+
+    const data = (await response.json()) as { id: string; output?: string[] };
+
+    // If output is returned directly (sync)
+    if (data.output?.[0]) {
+      ensureParentDir(input.outputFile);
+      await downloadFile(data.output[0], input.outputFile);
+      return {
+        outputFile: input.outputFile,
+        mimeType: getMimeType(input.outputFile),
+        sizeBytes: statSync(input.outputFile).size,
+        durationMs: Date.now() - startTime,
+      };
+    }
+
+    // Otherwise poll for result
+    const jobId = data.id;
+    let attempts = 0;
+    while (attempts < 60) {
+      await new Promise((r) => setTimeout(r, 3000));
+      const status = await this.getJobStatus(jobId);
+      if (status.status === 'completed') {
+        const result = await this.downloadJob(jobId, input.outputFile);
+        return result;
+      }
+      if (status.status === 'failed') {
+        throw new MediaGenError('JOB_FAILED', status.error || 'Image generation failed', { provider: 'runway' });
+      }
+      attempts++;
+    }
+    throw new MediaGenError('JOB_TIMEOUT', 'Image generation timed out', { provider: 'runway' });
+  }
+
+  private sizeToRatio(size: string): string {
+    const [w, h] = size.split('x').map(Number);
+    if (w === h) return '1:1';
+    if (w > h) return '16:9';
+    return '9:16';
   }
 
   async generateVideo(input: VideoGenerationInput): Promise<AsyncMediaResult> {
