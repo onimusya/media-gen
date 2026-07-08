@@ -1,5 +1,7 @@
 /**
- * Azure OpenAI provider adapter for media-gen-cli.
+ * Azure AI Services provider adapter for media-gen-cli.
+ * Uses the OpenAI-compatible endpoint:
+ *   https://{resource}.services.ai.azure.com/openai/v1
  * Supports: image generation, TTS, transcription, translation.
  */
 
@@ -23,7 +25,7 @@ import { readFileSync, writeFileSync, statSync } from 'node:fs';
 
 export class AzureProvider implements FullProvider {
   id = 'azure';
-  name = 'Azure OpenAI';
+  name = 'Azure AI Services';
   capabilities: ProviderCapability[] = [
     'image-generate',
     'voice-tts',
@@ -36,10 +38,26 @@ export class AzureProvider implements FullProvider {
     if (!config?.apiKey || !config?.endpoint) {
       throw new MediaGenError('PROVIDER_NOT_CONFIGURED', 'Missing AZURE_OPENAI_API_KEY or AZURE_OPENAI_ENDPOINT', {
         provider: 'azure',
-        suggestion: 'Set AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT in your environment.',
+        suggestion: 'Set AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT in your environment. Endpoint format: https://{resource}.services.ai.azure.com/openai/v1',
       });
     }
     return config;
+  }
+
+  /**
+   * Get the base URL for the OpenAI-compatible endpoint.
+   * Expected format: https://{resource}.services.ai.azure.com/openai/v1
+   */
+  private getBaseUrl(): string {
+    const config = this.getConfig();
+    let endpoint = config.endpoint!;
+    // Remove trailing slash
+    endpoint = endpoint.replace(/\/+$/, '');
+    // If user provides just the resource URL, append /openai/v1
+    if (!endpoint.includes('/openai/v1')) {
+      endpoint = `${endpoint}/openai/v1`;
+    }
+    return endpoint;
   }
 
   private getHeaders(): Record<string, string> {
@@ -50,12 +68,6 @@ export class AzureProvider implements FullProvider {
     };
   }
 
-  private getUrl(path: string): string {
-    const config = this.getConfig();
-    const version = config.apiVersion || '2024-06-01';
-    return `${config.endpoint}${path}?api-version=${version}`;
-  }
-
   async validateConfig(): Promise<ValidationResult> {
     const config = getProviderConfig('azure');
     const errors: string[] = [];
@@ -63,7 +75,6 @@ export class AzureProvider implements FullProvider {
 
     if (!config?.apiKey) errors.push('AZURE_OPENAI_API_KEY is not set');
     if (!config?.endpoint) errors.push('AZURE_OPENAI_ENDPOINT is not set');
-    if (!config?.apiVersion) warnings.push('AZURE_OPENAI_API_VERSION not set, using default');
 
     return { valid: errors.length === 0, errors, warnings };
   }
@@ -71,10 +82,12 @@ export class AzureProvider implements FullProvider {
   async generateImage(input: ImageGenerationInput): Promise<MediaResult> {
     const log = getLogger();
     const startTime = Date.now();
+    const model = input.model || 'gpt-image-2';
 
-    log.debug({ model: input.model, prompt: input.prompt }, 'Azure image generation');
+    log.debug({ model, prompt: input.prompt }, 'Azure image generation');
 
     const body: Record<string, unknown> = {
+      model,
       prompt: input.prompt,
       n: input.n || 1,
       size: input.size || '1024x1024',
@@ -83,7 +96,7 @@ export class AzureProvider implements FullProvider {
     if (input.quality) body.quality = input.quality;
     if (input.style) body.style = input.style;
 
-    const url = this.getUrl(`/openai/deployments/${input.model || 'dall-e-3'}/images/generations`);
+    const url = `${this.getBaseUrl()}/images/generations`;
     const response = await fetch(url, {
       method: 'POST',
       headers: this.getHeaders(),
@@ -121,16 +134,21 @@ export class AzureProvider implements FullProvider {
   async textToSpeech(input: TextToSpeechInput): Promise<MediaResult> {
     const log = getLogger();
     const startTime = Date.now();
-    log.debug({ voiceId: input.voiceId }, 'Azure TTS');
+    const model = input.model || 'gpt-4o-mini-tts';
 
-    const url = this.getUrl(`/openai/deployments/${input.model || 'tts'}/audio/speech`);
-    const body = {
-      model: input.model || 'tts-1',
+    log.debug({ voiceId: input.voiceId, model }, 'Azure TTS');
+
+    const body: Record<string, unknown> = {
+      model,
       input: input.text,
       voice: input.voiceId,
       response_format: input.format || 'mp3',
     };
 
+    if (input.speed) body.speed = input.speed;
+    if (input.instructions) body.instructions = input.instructions;
+
+    const url = `${this.getBaseUrl()}/audio/speech`;
     const response = await fetch(url, {
       method: 'POST',
       headers: this.getHeaders(),
@@ -158,15 +176,16 @@ export class AzureProvider implements FullProvider {
   async transcribe(input: TranscriptionInput): Promise<TextResult> {
     const log = getLogger();
     const startTime = Date.now();
-    log.debug({ input: input.inputFile }, 'Azure transcription');
+    log.debug({ input: input.inputFile, model: input.model }, 'Azure transcription');
 
-    const url = this.getUrl(`/openai/deployments/${input.model || 'whisper'}/audio/transcriptions`);
     const audioBuffer = readFileSync(input.inputFile);
     const formData = new FormData();
     formData.append('file', new Blob([audioBuffer]), 'audio.mp3');
+    formData.append('model', input.model || 'whisper-1');
     formData.append('response_format', 'verbose_json');
     if (input.language) formData.append('language', input.language);
 
+    const url = `${this.getBaseUrl()}/audio/transcriptions`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'api-key': this.getConfig().apiKey! },
@@ -193,12 +212,13 @@ export class AzureProvider implements FullProvider {
     const startTime = Date.now();
     log.debug({ input: input.inputFile }, 'Azure translation');
 
-    const url = this.getUrl(`/openai/deployments/${input.model || 'whisper'}/audio/translations`);
     const audioBuffer = readFileSync(input.inputFile);
     const formData = new FormData();
     formData.append('file', new Blob([audioBuffer]), 'audio.mp3');
+    formData.append('model', input.model || 'whisper-1');
     formData.append('response_format', 'verbose_json');
 
+    const url = `${this.getBaseUrl()}/audio/translations`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'api-key': this.getConfig().apiKey! },

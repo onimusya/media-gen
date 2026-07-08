@@ -40,7 +40,6 @@ const ENV_KEY_MAP: Record<string, Record<string, string>> = {
   azure: {
     apiKey: 'AZURE_OPENAI_API_KEY',
     endpoint: 'AZURE_OPENAI_ENDPOINT',
-    apiVersion: 'AZURE_OPENAI_API_VERSION',
   },
   elevenlabs: { apiKey: 'ELEVENLABS_API_KEY' },
   deepgram: { apiKey: 'DEEPGRAM_API_KEY' },
