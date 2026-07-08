@@ -99,9 +99,14 @@ media-gen-cli/
 
 ### Deepgram
 - Transcription: `POST /v1/listen?model=nova-3` with audio buffer body
+- TTS: `POST /v1/speak?model={voice-model}` with JSON body `{ "text": "..." }`
 - Auth: `Authorization: Token <key>`
-- Content-Type must match the audio file MIME type
-- Latest model: `nova-3` (supports real-time multilingual)
+- Content-Type for transcription must match the audio file MIME type
+- TTS Content-Type: `application/json`
+- Latest transcription model: `nova-3` (supports real-time multilingual)
+- TTS models: `aura-2` (latest, higher quality), `aura` (legacy)
+- TTS voice IDs are the full model name (e.g., `aura-2-thalia-en`)
+- 19 featured voices across English, German, Italian, Japanese
 
 ### Fal.ai
 - Sync image gen: `POST https://fal.run/{model}`

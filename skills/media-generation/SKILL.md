@@ -263,7 +263,7 @@ Error:
 | google | Yes | Yes | Yes | | | | |
 | azure | Yes | | Yes | Yes | Yes | | |
 | elevenlabs | | | Yes | | | Yes | Yes |
-| deepgram | | | | Yes | Yes | | |
+| deepgram | | | Yes | Yes | Yes | | |
 | fal | Yes | Yes | | | | | |
 | luma | | Yes | | | | | |
 | replicate | Yes | Yes | | | | | |

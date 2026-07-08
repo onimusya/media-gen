@@ -70,7 +70,7 @@ AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 # ElevenLabs (TTS, voice clone, isolation)
 ELEVENLABS_API_KEY=
 
-# Deepgram (transcription, translation)
+# Deepgram (transcription, translation, TTS)
 DEEPGRAM_API_KEY=
 
 # Fal.ai (images, video)
@@ -196,13 +196,14 @@ media-gen providers models --provider google
 | Google | ✓ | ✓ | ✓ | | | | |
 | Azure | ✓ | | ✓ | ✓ | ✓ | | |
 | ElevenLabs | | | ✓ | | | ✓ | ✓ |
-| Deepgram | | | | ✓ | ✓ | | |
+| Deepgram | | | ✓ | ✓ | ✓ | | |
 | Fal.ai | ✓ | ✓ | | | | | |
 | Luma AI | | ✓ | | | | | |
 | Replicate | ✓ | ✓ | | | | | |
 | Stability AI | ✓ | | | | | | |
 | Runway | | ✓ | | | | | |
 | OpenRouter | ✓ | | | | | | |
+| MiniMax | | ✓ | ✓ | | | | |
 | Edge TTS | | | ✓ (free) | | | | |
 
 ## Agent Integration
