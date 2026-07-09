@@ -140,7 +140,6 @@ export class OpenRouterProvider implements FullProvider {
 
   async generateVideo(input: VideoGenerationInput): Promise<AsyncMediaResult> {
     const log = getLogger();
-    const startTime = Date.now();
     const model = input.model || 'google/veo-3.1';
 
     log.debug({ model, prompt: input.prompt }, 'OpenRouter video generation');
@@ -152,8 +151,9 @@ export class OpenRouterProvider implements FullProvider {
 
     if (input.duration) body.duration = input.duration;
     if (input.aspectRatio) body.aspect_ratio = input.aspectRatio;
+    if (input.resolution) body.resolution = input.resolution;
 
-    const response = await fetch('https://openrouter.ai/api/v1/video/generations', {
+    const response = await fetch('https://openrouter.ai/api/v1/videos', {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(body),
@@ -173,31 +173,81 @@ export class OpenRouterProvider implements FullProvider {
 
     const data = (await response.json()) as {
       id?: string;
-      data?: Array<{ url?: string }>;
+      generation_id?: string;
+      status?: string;
+      polling_url?: string;
     };
 
-    // If video URL returned directly (sync)
-    if (data.data?.[0]?.url) {
-      ensureParentDir(input.outputFile);
-      await downloadFile(data.data[0].url, input.outputFile);
-      return {
-        jobId: data.id || 'completed',
-        provider: 'openrouter',
-        status: 'completed',
-        result: {
-          outputFile: input.outputFile,
-          mimeType: getMimeType(input.outputFile),
-          sizeBytes: statSync(input.outputFile).size,
-          durationMs: Date.now() - startTime,
-        },
-      };
+    return {
+      jobId: data.id || data.generation_id || 'unknown',
+      provider: 'openrouter',
+      status: 'queued',
+      statusUrl: data.polling_url
+        ? (data.polling_url.startsWith('http') ? data.polling_url : `https://openrouter.ai${data.polling_url}`)
+        : undefined,
+    };
+  }
+
+  async getJobStatus(jobId: string): Promise<import('../../core/provider.js').JobStatusResult> {
+    const url = `https://openrouter.ai/api/v1/videos/${jobId}`;
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${this.getApiKey()}` },
+    });
+
+    if (!response.ok) {
+      throw new MediaGenError('API_ERROR', `Status check failed: HTTP ${response.status}`, { provider: 'openrouter' });
     }
 
-    // Async job
+    const data = (await response.json()) as {
+      id: string;
+      status: string;
+      output?: { url?: string };
+      error?: string;
+    };
+
+    const statusMap: Record<string, import('../../core/provider.js').JobStatusResult['status']> = {
+      pending: 'queued',
+      processing: 'processing',
+      completed: 'completed',
+      failed: 'failed',
+    };
+
     return {
-      jobId: data.id || 'unknown',
+      jobId: data.id || jobId,
       provider: 'openrouter',
-      status: 'processing',
+      status: statusMap[data.status] || 'processing',
+      error: data.error,
+    };
+  }
+
+  async downloadJob(jobId: string, outputFile: string): Promise<MediaResult> {
+    const startTime = Date.now();
+    const url = `https://openrouter.ai/api/v1/videos/${jobId}`;
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${this.getApiKey()}` },
+    });
+
+    if (!response.ok) {
+      throw new MediaGenError('API_ERROR', `Failed to get job: HTTP ${response.status}`, { provider: 'openrouter' });
+    }
+
+    const data = (await response.json()) as {
+      status: string;
+      output?: { url?: string };
+    };
+
+    if (data.status !== 'completed' || !data.output?.url) {
+      throw new MediaGenError('JOB_FAILED', 'Job not completed or no video URL', { provider: 'openrouter' });
+    }
+
+    ensureParentDir(outputFile);
+    await downloadFile(data.output.url, outputFile);
+
+    return {
+      outputFile,
+      mimeType: getMimeType(outputFile),
+      sizeBytes: statSync(outputFile).size,
+      durationMs: Date.now() - startTime,
     };
   }
 }
