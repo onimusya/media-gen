@@ -1,5 +1,27 @@
 # Release Notes
 
+## v1.4.0 (2026-07-09)
+
+### New Capabilities
+- **OpenRouter video generation** — 12 models via `POST /api/v1/videos` (async with polling)
+  - google/veo-3.1, google/veo-3.1-fast, google/veo-3.1-lite
+  - alibaba/happy-horse-1.1, alibaba/happy-horse-1.0, alibaba/wan-2.7
+  - x-ai/grok-imagine-video
+  - kuaishou/kling-video-3.0-pro, kuaishou/kling-video-3.0-standard
+  - minimax/hailuo-2.3
+  - bytedance-seed/seedance-2.0-fast, bytedance-seed/seedance-2.0
+- **OpenRouter image** — added microsoft/mai-image-2.5
+- Auto-generate `~/.media-gen/.env` template on first run (all keys commented out)
+- `--version` now reflects package.json (injected at build time)
+- `.plugin/plugin.json` for Open Plugins standard (cursor.directory compatibility)
+- `npx skills add onimusya/media-gen` installation support
+
+### Fixes
+- Fixed OpenRouter video endpoint (`POST /api/v1/videos`, not `/video/generations`)
+- Fixed OpenRouter video download (uses `unsigned_urls[]` with auth header)
+- Fixed `~/.media-gen/logs/` not created on `--help` or `--version`
+- Fixed `--version` showing hardcoded `1.0.0`
+
 ## v1.3.0 (2026-07-08)
 
 ### New Capabilities

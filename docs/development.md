@@ -80,12 +80,16 @@ media-gen-cli/
 - Important: Model names in the API are NOT the marketing names (e.g., "Veo 3.1" → `veo-3.1-generate-preview`)
 
 ### OpenRouter
-- Unified gateway to multiple image providers
-- Endpoint: `POST https://openrouter.ai/api/v1/images`
+- Unified gateway to multiple image and video providers
+- Image endpoint: `POST https://openrouter.ai/api/v1/images`
+- Video endpoint: `POST https://openrouter.ai/api/v1/videos` (async)
+- Video status: `GET https://openrouter.ai/api/v1/videos/{job-id}`
+- Video download: response contains `unsigned_urls[]` array, fetch with auth header
 - Auth: `Authorization: Bearer <key>`
 - Requires `HTTP-Referer` and `X-Title` headers
-- Model IDs use `provider/model` format (e.g., `openai/gpt-image-2`)
-- Returns `data[].b64_json` or `data[].url`
+- Model IDs use `provider/model` format (e.g., `openai/gpt-image-2`, `google/veo-3.1`)
+- Image returns `data[].b64_json` or `data[].url`
+- Video returns `{ id, status, polling_url }` then poll until `status: "completed"`
 
 ### ElevenLabs
 - TTS: `POST /v1/text-to-speech/{voice_id}` (returns audio buffer)

@@ -216,7 +216,7 @@ media-gen providers models --provider google
 | Replicate | ✓ | ✓ | | | | | |
 | Stability AI | ✓ | | | | | | |
 | Runway | | ✓ | | | | | |
-| OpenRouter | ✓ | | | | | | |
+| OpenRouter | ✓ | ✓ | | | | | |
 | MiniMax | | ✓ | ✓ | | | | |
 | Edge TTS | | | ✓ (free) | | | | |
 

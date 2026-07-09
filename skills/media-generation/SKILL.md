@@ -269,5 +269,5 @@ Error:
 | replicate | Yes | Yes | | | | | |
 | stability | Yes | | | | | | |
 | runway | | Yes | | | | | |
-| openrouter | Yes | | | | | | |
+| openrouter | Yes | Yes | | | | | |
 | edge-tts | | | Yes (free) | | | | |
