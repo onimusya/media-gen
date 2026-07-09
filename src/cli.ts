@@ -13,13 +13,15 @@ import { createSkillCommand } from './commands/skill.js';
 import { createJobCommand } from './commands/job.js';
 import { initLogger } from './core/logger.js';
 
+declare const __APP_VERSION__: string;
+
 export function createProgram(): Command {
   const program = new Command();
 
   program
     .name('media-gen')
     .description('Multi-provider media generation CLI for images, video, voice, and audio')
-    .version('1.0.0')
+    .version(__APP_VERSION__)
     .option('--debug', 'Enable debug logging', false)
     .hook('preAction', (thisCommand) => {
       const opts = thisCommand.opts();

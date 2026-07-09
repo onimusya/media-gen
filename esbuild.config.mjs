@@ -1,5 +1,7 @@
 import { build } from 'esbuild';
-import { copyFileSync } from 'fs';
+import { copyFileSync, readFileSync } from 'fs';
+
+const pkg = JSON.parse(readFileSync('package.json', 'utf-8'));
 
 await build({
   entryPoints: ['src/index.ts'],
@@ -19,6 +21,7 @@ const require = createRequire(import.meta.url);
   },
   define: {
     'process.env.NODE_ENV': '"production"',
+    '__APP_VERSION__': JSON.stringify(pkg.version),
   },
   mangleProps: /_$/,
   treeShaking: true,
