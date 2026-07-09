@@ -1,0 +1,13 @@
+{
+  "name": "media-generation",
+  "version": "1.3.0",
+  "description": "Multi-provider media generation CLI — images, video, speech, transcription through 13 AI providers with 100+ models.",
+  "author": "Francis Hor <francishoe@gmail.com>",
+  "repository": "https://github.com/onimusya/media-gen",
+  "license": "MIT",
+  "skills": ["skills/media-generation"],
+  "install": {
+    "type": "skill",
+    "path": "skills/media-generation"
+  }
+}

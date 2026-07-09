@@ -1,0 +1,47 @@
+{
+  "name": "media-generation",
+  "version": "1.3.0",
+  "description": "Generate images, videos, speech, and transcriptions through 13 AI providers (OpenAI, Google, Azure, ElevenLabs, Deepgram, Fal.ai, Luma, Replicate, Stability, Runway, OpenRouter, MiniMax, Edge TTS). Supports 100+ models with structured JSON output for agent integration.",
+  "author": {
+    "name": "Francis Hor",
+    "email": "francishoe@gmail.com",
+    "url": "https://github.com/onimusya"
+  },
+  "repository": "https://github.com/onimusya/media-gen",
+  "license": "MIT",
+  "keywords": [
+    "media-generation",
+    "image-generation",
+    "video-generation",
+    "text-to-speech",
+    "transcription",
+    "openai",
+    "google",
+    "elevenlabs",
+    "deepgram",
+    "fal",
+    "runway",
+    "edge-tts",
+    "ai-agents"
+  ],
+  "skills": [
+    {
+      "name": "media-generation",
+      "path": "skills/media-generation",
+      "description": "Generate and edit images, create videos, synthesize speech, transcribe and translate audio using multiple AI providers."
+    }
+  ],
+  "compatibility": {
+    "agents": [
+      "claude-code",
+      "cursor",
+      "codex",
+      "github-copilot",
+      "windsurf",
+      "gemini",
+      "cline",
+      "kiro"
+    ],
+    "node": ">=18.0.0"
+  }
+}
