@@ -18,6 +18,9 @@ declare const __APP_VERSION__: string;
 export function createProgram(): Command {
   const program = new Command();
 
+  // Ensure ~/.media-gen/logs/ exists on startup
+  initLogger(false);
+
   program
     .name('media-gen')
     .description('Multi-provider media generation CLI for images, video, voice, and audio')
@@ -25,7 +28,9 @@ export function createProgram(): Command {
     .option('--debug', 'Enable debug logging', false)
     .hook('preAction', (thisCommand) => {
       const opts = thisCommand.opts();
-      initLogger(opts.debug || false);
+      if (opts.debug) {
+        initLogger(true);
+      }
     });
 
   program.addCommand(createImageCommand());
