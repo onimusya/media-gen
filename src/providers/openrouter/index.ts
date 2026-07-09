@@ -9,7 +9,9 @@ import type {
   ProviderCapability,
   ValidationResult,
   ImageGenerationInput,
+  VideoGenerationInput,
   MediaResult,
+  AsyncMediaResult,
 } from '../../core/provider.js';
 import { MediaGenError } from '../../core/errors.js';
 import { getProviderConfig } from '../../core/config.js';
@@ -24,6 +26,7 @@ export class OpenRouterProvider implements FullProvider {
   name = 'OpenRouter';
   capabilities: ProviderCapability[] = [
     'image-generate',
+    'video-generate',
   ];
 
   private getApiKey(): string {
@@ -132,6 +135,69 @@ export class OpenRouterProvider implements FullProvider {
       sizeBytes: size,
       durationMs: Date.now() - startTime,
       metadata: { revisedPrompt: imageData.revised_prompt },
+    };
+  }
+
+  async generateVideo(input: VideoGenerationInput): Promise<AsyncMediaResult> {
+    const log = getLogger();
+    const startTime = Date.now();
+    const model = input.model || 'google/veo-3.1';
+
+    log.debug({ model, prompt: input.prompt }, 'OpenRouter video generation');
+
+    const body: Record<string, unknown> = {
+      model,
+      prompt: input.prompt,
+    };
+
+    if (input.duration) body.duration = input.duration;
+    if (input.aspectRatio) body.aspect_ratio = input.aspectRatio;
+
+    const response = await fetch('https://openrouter.ai/api/v1/video/generations', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      const errObj = err as Record<string, unknown>;
+      const message =
+        (errObj?.error as Record<string, string>)?.message ||
+        (errObj as Record<string, string>)?.message ||
+        `HTTP ${response.status}`;
+      throw new MediaGenError('API_ERROR', message, {
+        provider: 'openrouter',
+      });
+    }
+
+    const data = (await response.json()) as {
+      id?: string;
+      data?: Array<{ url?: string }>;
+    };
+
+    // If video URL returned directly (sync)
+    if (data.data?.[0]?.url) {
+      ensureParentDir(input.outputFile);
+      await downloadFile(data.data[0].url, input.outputFile);
+      return {
+        jobId: data.id || 'completed',
+        provider: 'openrouter',
+        status: 'completed',
+        result: {
+          outputFile: input.outputFile,
+          mimeType: getMimeType(input.outputFile),
+          sizeBytes: statSync(input.outputFile).size,
+          durationMs: Date.now() - startTime,
+        },
+      };
+    }
+
+    // Async job
+    return {
+      jobId: data.id || 'unknown',
+      provider: 'openrouter',
+      status: 'processing',
     };
   }
 }

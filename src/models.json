@@ -291,6 +291,7 @@
     "models": [
       "openai/gpt-image-2",
       "openai/gpt-image-1",
+      "microsoft/mai-image-2.5",
       "google/gemini-2.5-flash-image",
       "google/gemini-3.1-flash-image",
       "google/gemini-3.1-flash-image-preview",
@@ -300,12 +301,25 @@
       "x-ai/grok-imagine-image-quality",
       "bytedance-seed/seedream-4.5",
       "black-forest-labs/flux.2-klein-4b",
-      "recraft/recraft-v3"
+      "recraft/recraft-v3",
+      "alibaba/happy-horse-1.1",
+      "alibaba/happy-horse-1.0",
+      "x-ai/grok-imagine-video",
+      "kuaishou/kling-video-3.0-pro",
+      "kuaishou/kling-video-3.0-standard",
+      "google/veo-3.1",
+      "google/veo-3.1-fast",
+      "google/veo-3.1-lite",
+      "minimax/hailuo-2.3",
+      "alibaba/wan-2.7",
+      "bytedance-seed/seedance-2.0-fast",
+      "bytedance-seed/seedance-2.0"
     ],
     "capabilities": {
       "image-generate": [
         "openai/gpt-image-2",
         "openai/gpt-image-1",
+        "microsoft/mai-image-2.5",
         "google/gemini-2.5-flash-image",
         "google/gemini-3.1-flash-image",
         "google/gemini-3.1-flash-image-preview",
@@ -316,6 +330,20 @@
         "bytedance-seed/seedream-4.5",
         "black-forest-labs/flux.2-klein-4b",
         "recraft/recraft-v3"
+      ],
+      "video-generate": [
+        "alibaba/happy-horse-1.1",
+        "alibaba/happy-horse-1.0",
+        "x-ai/grok-imagine-video",
+        "kuaishou/kling-video-3.0-pro",
+        "kuaishou/kling-video-3.0-standard",
+        "google/veo-3.1",
+        "google/veo-3.1-fast",
+        "google/veo-3.1-lite",
+        "minimax/hailuo-2.3",
+        "alibaba/wan-2.7",
+        "bytedance-seed/seedance-2.0-fast",
+        "bytedance-seed/seedance-2.0"
       ]
     }
   },
