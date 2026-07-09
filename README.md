@@ -12,11 +12,23 @@ Designed for both direct human use and AI agent integration.
 
 ## Installation
 
+### As an Agent Skill (recommended)
+
+Install the skill into any AI agent (Claude Code, Cursor, Codex, Copilot, Windsurf, Gemini, Cline, Kiro):
+
+```bash
+npx skills add onimusya/media-gen
+```
+
+This downloads the `SKILL.md` and the pre-built CLI into your project's skills directory. Your agent will auto-discover it.
+
+### As a global CLI
+
 ```bash
 npm install -g media-gen-cli
 ```
 
-Or use locally in a project:
+### As a local project dependency
 
 ```bash
 npm install media-gen-cli
