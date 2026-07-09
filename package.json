@@ -1,6 +1,6 @@
 {
   "name": "media-gen-cli",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Production-ready CLI for multi-provider media generation (images, video, voice, audio) designed for developers and AI agents",
   "type": "module",
   "main": "./dist/media-gen.js",
