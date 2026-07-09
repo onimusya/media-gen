@@ -1,0 +1,24 @@
+{
+  "name": "media-generation",
+  "version": "1.4.0",
+  "description": "Generate images, videos, speech, and transcriptions through 13 AI providers. Supports 100+ models with structured JSON output for agent integration.",
+  "author": {
+    "name": "Francis Hor",
+    "email": "francishoe@gmail.com"
+  },
+  "repository": "https://github.com/onimusya/media-gen",
+  "license": "MIT",
+  "keywords": [
+    "media-generation",
+    "image-generation",
+    "video-generation",
+    "text-to-speech",
+    "transcription",
+    "ai-agents",
+    "openai",
+    "google",
+    "elevenlabs",
+    "deepgram",
+    "edge-tts"
+  ]
+}
