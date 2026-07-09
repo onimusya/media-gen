@@ -1,6 +1,6 @@
 # Release Notes
 
-## v1.4.0 (2026-07-09)
+## v1.5.0 (2026-07-09)
 
 ### New Capabilities
 - **OpenRouter video generation** — 12 models via `POST /api/v1/videos` (async with polling)
