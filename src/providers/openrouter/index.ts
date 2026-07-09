@@ -201,7 +201,7 @@ export class OpenRouterProvider implements FullProvider {
     const data = (await response.json()) as {
       id: string;
       status: string;
-      output?: { url?: string };
+      unsigned_urls?: string[];
       error?: string;
     };
 
@@ -233,20 +233,33 @@ export class OpenRouterProvider implements FullProvider {
 
     const data = (await response.json()) as {
       status: string;
-      output?: { url?: string };
+      unsigned_urls?: string[];
     };
 
-    if (data.status !== 'completed' || !data.output?.url) {
+    if (data.status !== 'completed' || !data.unsigned_urls?.[0]) {
       throw new MediaGenError('JOB_FAILED', 'Job not completed or no video URL', { provider: 'openrouter' });
     }
 
+    // Download using the unsigned URL with auth header
+    const videoUrl = data.unsigned_urls[0];
+    const videoResp = await fetch(videoUrl, {
+      headers: { Authorization: `Bearer ${this.getApiKey()}` },
+      redirect: 'follow',
+    });
+
+    if (!videoResp.ok) {
+      throw new MediaGenError('API_ERROR', `Video download failed: HTTP ${videoResp.status}`, { provider: 'openrouter' });
+    }
+
+    const buffer = Buffer.from(await videoResp.arrayBuffer());
     ensureParentDir(outputFile);
-    await downloadFile(data.output.url, outputFile);
+    const { writeFileSync } = await import('node:fs');
+    writeFileSync(outputFile, buffer);
 
     return {
       outputFile,
       mimeType: getMimeType(outputFile),
-      sizeBytes: statSync(outputFile).size,
+      sizeBytes: buffer.length,
       durationMs: Date.now() - startTime,
     };
   }
