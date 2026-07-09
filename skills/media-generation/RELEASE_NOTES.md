@@ -1,5 +1,31 @@
 # Release Notes
 
+## v1.3.0 (2026-07-08)
+
+### New Capabilities
+- **Runway image generation** — gen4_image, gen4_image_turbo, gemini_image3_pro, gemini_image3.1_flash, gemini_2.5_flash, gpt_image_2
+- **Runway multi-provider video** — veo3, veo3.1, seedance2, seedance2_fast, seedance2_mini, happyhorse_1_0, gemini_omni_flash (text-to-video + image-to-video)
+- **Deepgram TTS** — Aura-2 and Aura models with 19 featured voices (English, German, Italian, Japanese)
+
+### Updated Models
+- **Runway**: expanded from 5 to 18 models (image + video + image-to-video)
+- **Deepgram**: added `aura-2` and `aura` TTS models with voice IDs (e.g., `aura-2-thalia-en`)
+- **Fal.ai**: added ByteDance Seedream v5/v4, Dreamina v3.1, all Seedance 2.0 variants (standard/fast/mini)
+
+### Fixes
+- Fixed Fal.ai queue status/download URL construction (strips endpoint suffix for queue paths)
+- Fixed Azure provider to use Azure AI Services OpenAI-compatible endpoint format
+
+## v1.2.0 (2026-07-08)
+
+### Changes
+- **Azure provider rewritten** for Azure AI Services OpenAI-compatible endpoint (`https://{resource}.services.ai.azure.com/openai/v1`)
+- Azure models: gpt-image-2, gpt-image-1.5, gpt-4o-mini-tts with 13 voice IDs
+- Added `LICENSE` and `RELEASE_NOTES.md` to skills folder
+- Added prerequisites section to README
+- Added ByteDance Seedream v5/v4 and Dreamina v3.1 for Fal.ai
+- Added all Seedance 2.0 variants for Fal.ai (text-to-video, fast, mini)
+
 ## v1.1.0 (2026-07-07)
 
 ### New Providers
