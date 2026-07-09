@@ -1,4 +1,6 @@
-# media-gen-cli
+# media-gen
+
+[![skills.sh](https://skills.sh/b/onimusya/media-gen)](https://skills.sh/onimusya/media-gen)
 
 A production-ready CLI for multi-provider media generation. Generate images, videos, voice, and transcriptions through OpenAI, Google, Azure, ElevenLabs, Deepgram, Fal.ai, Luma AI, Replicate, Stability AI, Runway, OpenRouter, MiniMax, and Microsoft Edge TTS — all from a single interface.
 
