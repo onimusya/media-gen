@@ -12,13 +12,15 @@ import { createProvidersCommand } from './commands/providers.js';
 import { createSkillCommand } from './commands/skill.js';
 import { createJobCommand } from './commands/job.js';
 import { initLogger } from './core/logger.js';
+import { ensureHomeEnv } from './core/config.js';
 
 declare const __APP_VERSION__: string;
 
 export function createProgram(): Command {
   const program = new Command();
 
-  // Ensure ~/.media-gen/logs/ exists on startup
+  // Ensure ~/.media-gen/ exists with .env template and logs/ on startup
+  ensureHomeEnv();
   initLogger(false);
 
   program

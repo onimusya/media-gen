@@ -60,6 +60,84 @@ export function getHomeConfigDir(): string {
   return join(homedir(), '.media-gen');
 }
 
+/**
+ * Ensure ~/.media-gen/.env exists with commented-out template on first run.
+ */
+export function ensureHomeEnv(): void {
+  const homeDir = getHomeConfigDir();
+  const envPath = join(homeDir, '.env');
+
+  if (existsSync(envPath)) return;
+
+  if (!existsSync(homeDir)) {
+    mkdirSync(homeDir, { recursive: true });
+  }
+
+  const template = `# media-gen-cli user-level configuration
+# Uncomment and set the API keys for providers you want to use.
+# Keys here apply to all projects unless overridden by a project-level .env
+
+# OpenAI (images, TTS, transcription)
+# OPENAI_API_KEY=
+
+# Google (Imagen, Veo, Gemini TTS)
+# GOOGLE_GENERATIVE_AI_API_KEY=
+
+# Azure AI Services (OpenAI-compatible endpoint)
+# AZURE_OPENAI_API_KEY=
+# AZURE_OPENAI_ENDPOINT=https://{resource}.services.ai.azure.com/openai/v1
+
+# ElevenLabs (TTS, voice clone, isolation)
+# ELEVENLABS_API_KEY=
+
+# Deepgram (transcription, translation, TTS)
+# DEEPGRAM_API_KEY=
+
+# Fal.ai (images, video)
+# FAL_KEY=
+
+# Luma AI (video)
+# LUMA_API_KEY=
+
+# Replicate (images, video)
+# REPLICATE_API_TOKEN=
+
+# Stability AI (images)
+# STABILITY_API_KEY=
+
+# Runway (images, video)
+# RUNWAY_API_KEY=
+
+# MiniMax (video, TTS)
+# MINIMAX_API_KEY=
+
+# OpenRouter (images, multi-provider gateway)
+# OPENROUTER_API_KEY=
+
+# Edge TTS is FREE - no API key needed
+
+# Default provider and model (so --provider and --model are optional)
+# MEDIA_GEN_DEFAULT_PROVIDER=openrouter
+# MEDIA_GEN_DEFAULT_MODEL=openai/gpt-image-2
+
+# Per-type overrides
+# MEDIA_GEN_IMAGE_PROVIDER=
+# MEDIA_GEN_IMAGE_MODEL=
+# MEDIA_GEN_VIDEO_PROVIDER=
+# MEDIA_GEN_VIDEO_MODEL=
+# MEDIA_GEN_VOICE_PROVIDER=edge-tts
+# MEDIA_GEN_VOICE_MODEL=
+# MEDIA_GEN_VOICE_ID=en-US-EmmaMultilingualNeural
+# MEDIA_GEN_AUDIO_PROVIDER=
+# MEDIA_GEN_AUDIO_MODEL=
+
+# Log level: silent, error, warn, info, debug, trace (default: error)
+# MEDIA_GEN_LOG_LEVEL=error
+`;
+
+  writeFileSync(envPath, template, 'utf-8');
+}
+
 export function getConfigDir(cwd?: string): string {
   return resolve(cwd || process.cwd(), CONFIG_DIR);
 }
