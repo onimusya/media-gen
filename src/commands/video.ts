@@ -10,6 +10,7 @@ import { isAsyncResult, pollForCompletion } from '../core/jobs.js';
 import { getLogger } from '../core/logger.js';
 import { validateFileExists } from '../core/validation.js';
 import { resolveProvider, resolveModel } from '../core/config.js';
+import { parseBatchFile, runBatch } from '../utils/batch.js';
 import type { SuccessResponse } from '../core/errors.js';
 
 export function createVideoCommand(): Command {
@@ -18,7 +19,8 @@ export function createVideoCommand(): Command {
   video
     .command('generate')
     .description('Generate a video from a text prompt')
-    .requiredOption('--prompt <prompt>', 'Video generation prompt')
+    .option('--prompt <prompt>', 'Video generation prompt')
+    .option('--batch <file>', 'Batch file with prompts (.txt, .json, .csv)')
     .option('--provider <provider>', 'Provider to use (e.g., google, luma, runway, fal)')
     .option('--model <model>', 'Model to use')
     .option('--duration <seconds>', 'Video duration in seconds')
@@ -38,7 +40,95 @@ export function createVideoCommand(): Command {
     .option('--debug', 'Enable debug logging', false)
     .action(async (opts) => {
       const log = getLogger();
+
+      // Batch mode
+      if (opts.batch) {
+        try {
+          const items = parseBatchFile(opts.batch);
+          if (items.length === 0) {
+            throw new MediaGenError('INVALID_INPUT', 'Batch file is empty');
+          }
+
+          const providerName = resolveProvider(opts.provider, 'video');
+          const model = resolveModel(opts.model, 'video');
+          if (!providerName) {
+            throw new MediaGenError('INVALID_INPUT', 'No provider specified. Use --provider or set MEDIA_GEN_DEFAULT_PROVIDER / MEDIA_GEN_VIDEO_PROVIDER in .env');
+          }
+          if (!model) {
+            throw new MediaGenError('INVALID_INPUT', 'No model specified. Use --model or set MEDIA_GEN_VIDEO_MODEL in .env');
+          }
+
+          if (opts.dryRun) {
+            printResponse({ ok: true, type: 'batch-video', provider: providerName, model, items: items.length, dryRun: true }, opts.json);
+            return;
+          }
+
+          const provider = getProvider(providerName);
+          if (!provider.generateVideo) {
+            throw new MediaGenError('CAPABILITY_NOT_SUPPORTED', `Provider "${providerName}" does not support video generation`, { provider: providerName });
+          }
+
+          const results = await runBatch(items, async (item, index) => {
+            const outputFile = resolveOutputPath(
+              item.output || `video-batch-${index + 1}-${Date.now()}.mp4`,
+              { outputDir: opts.outputDir || './outputs', allowExternalOutput: opts.allowExternalOutput },
+            );
+
+            const result = await provider.generateVideo!({
+              prompt: item.prompt,
+              model: item.model || model,
+              duration: opts.duration ? parseFloat(opts.duration) : undefined,
+              aspectRatio: opts.aspectRatio,
+              resolution: opts.resolution,
+              fps: opts.fps ? parseInt(opts.fps) : undefined,
+              outputFile,
+            });
+
+            if (isAsyncResult(result) && opts.wait && provider.getJobStatus && provider.downloadJob) {
+              const status = await pollForCompletion(result.jobId, providerName, (id) => provider.getJobStatus!(id), {
+                wait: true, pollInterval: parseInt(opts.pollInterval), timeout: parseInt(opts.timeout),
+              });
+              if (status.status === 'completed') {
+                const media = await provider.downloadJob!(result.jobId, outputFile);
+                return { outputFile: media.outputFile };
+              }
+            }
+
+            if (isAsyncResult(result)) {
+              return { outputFile: `job:${result.jobId}` };
+            }
+            return { outputFile: result.outputFile };
+          }, {
+            onProgress: (completed, total, result) => {
+              if (!opts.json) {
+                const status = result.ok ? '✓' : '✗';
+                console.log(`  ${status} [${completed}/${total}] ${result.prompt.substring(0, 60)}${result.prompt.length > 60 ? '...' : ''}`);
+              }
+            },
+          });
+
+          const succeeded = results.filter((r) => r.ok).length;
+          const failed = results.filter((r) => !r.ok).length;
+
+          if (opts.json) {
+            console.log(JSON.stringify({ ok: true, type: 'batch-video', provider: providerName, model, total: items.length, succeeded, failed, results }, null, 2));
+          } else {
+            console.log(`\nBatch complete: ${succeeded} succeeded, ${failed} failed out of ${items.length}`);
+          }
+        } catch (err) {
+          log.error(err, 'Batch video error');
+          printResponse(toErrorResponse(err), opts.json);
+          process.exitCode = 1;
+        }
+        return;
+      }
+
+      // Single mode
       try {
+        if (!opts.prompt) {
+          throw new MediaGenError('INVALID_INPUT', 'Either --prompt or --batch is required');
+        }
+
         const providerName = resolveProvider(opts.provider, 'video');
         const model = resolveModel(opts.model, 'video');
 

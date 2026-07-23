@@ -10,6 +10,7 @@ import type { SuccessResponse } from '../core/errors.js';
 import { getLogger } from '../core/logger.js';
 import { validateFileExists } from '../core/validation.js';
 import { resolveProvider, resolveModel } from '../core/config.js';
+import { parseBatchFile, runBatch } from '../utils/batch.js';
 
 export function createImageCommand(): Command {
   const image = new Command('image').description('Image generation and editing');
@@ -17,7 +18,8 @@ export function createImageCommand(): Command {
   image
     .command('generate')
     .description('Generate an image from a text prompt')
-    .requiredOption('--prompt <prompt>', 'Image generation prompt')
+    .option('--prompt <prompt>', 'Image generation prompt')
+    .option('--batch <file>', 'Batch file with prompts (.txt, .json, .csv)')
     .option('--provider <provider>', 'Provider to use (e.g., openai, stability, fal, openrouter)')
     .option('--model <model>', 'Model to use')
     .option('--size <size>', 'Image size (e.g., 1024x1024)', '1024x1024')
@@ -35,7 +37,81 @@ export function createImageCommand(): Command {
     .option('--debug', 'Enable debug logging', false)
     .action(async (opts) => {
       const log = getLogger();
+
+      // Batch mode
+      if (opts.batch) {
+        try {
+          const items = parseBatchFile(opts.batch);
+          if (items.length === 0) {
+            throw new MediaGenError('INVALID_INPUT', 'Batch file is empty');
+          }
+
+          const providerName = resolveProvider(opts.provider, 'image');
+          const model = resolveModel(opts.model, 'image');
+          if (!providerName) {
+            throw new MediaGenError('INVALID_INPUT', 'No provider specified. Use --provider or set MEDIA_GEN_DEFAULT_PROVIDER / MEDIA_GEN_IMAGE_PROVIDER in .env');
+          }
+
+          if (opts.dryRun) {
+            printResponse({ ok: true, type: 'batch-image', provider: providerName, model, items: items.length, dryRun: true }, opts.json);
+            return;
+          }
+
+          const providerInstance = getProvider(providerName);
+          if (!providerInstance.generateImage) {
+            throw new MediaGenError('CAPABILITY_NOT_SUPPORTED', `Provider "${providerName}" does not support image generation`, { provider: providerName });
+          }
+
+          const results = await runBatch(items, async (item, index) => {
+            const outputFile = resolveOutputPath(
+              item.output || `image-batch-${index + 1}-${Date.now()}.png`,
+              { outputDir: opts.outputDir || './outputs', allowExternalOutput: opts.allowExternalOutput },
+            );
+            checkOverwrite(outputFile, opts.overwrite);
+            ensureOutputDir(outputFile);
+
+            const result = await providerInstance.generateImage!({
+              prompt: item.prompt,
+              model: item.model || model || 'gpt-image-2',
+              size: opts.size,
+              quality: opts.quality,
+              style: opts.style,
+              n: 1,
+              negativePrompt: opts.negativePrompt,
+              outputFile,
+            });
+            return { outputFile: result.outputFile };
+          }, {
+            onProgress: (completed, total, result) => {
+              if (!opts.json) {
+                const status = result.ok ? '✓' : '✗';
+                console.log(`  ${status} [${completed}/${total}] ${result.prompt.substring(0, 60)}${result.prompt.length > 60 ? '...' : ''}`);
+              }
+            },
+          });
+
+          const succeeded = results.filter((r) => r.ok).length;
+          const failed = results.filter((r) => !r.ok).length;
+
+          if (opts.json) {
+            console.log(JSON.stringify({ ok: true, type: 'batch-image', provider: providerName, model, total: items.length, succeeded, failed, results }, null, 2));
+          } else {
+            console.log(`\nBatch complete: ${succeeded} succeeded, ${failed} failed out of ${items.length}`);
+          }
+        } catch (err) {
+          log.error(err, 'Batch image error');
+          printResponse(toErrorResponse(err), opts.json);
+          process.exitCode = 1;
+        }
+        return;
+      }
+
+      // Single mode
       try {
+        if (!opts.prompt) {
+          throw new MediaGenError('INVALID_INPUT', 'Either --prompt or --batch is required');
+        }
+
         const provider = resolveProvider(opts.provider, 'image');
         const model = resolveModel(opts.model, 'image');
 

@@ -9,6 +9,7 @@ import { MediaGenError, toErrorResponse } from '../core/errors.js';
 import { getLogger } from '../core/logger.js';
 import { validateFileExists } from '../core/validation.js';
 import { resolveProvider, resolveModel, resolveVoiceId } from '../core/config.js';
+import { parseBatchFile, runBatch } from '../utils/batch.js';
 
 export function createVoiceCommand(): Command {
   const voice = new Command('voice').description('Voice synthesis and cloning');
@@ -18,7 +19,8 @@ export function createVoiceCommand(): Command {
     .description('Convert text to speech')
     .option('--provider <provider>', 'Provider (e.g., openai, elevenlabs, edge-tts, azure)')
     .option('--voice-id <id>', 'Voice ID to use (or set MEDIA_GEN_VOICE_ID in .env)')
-    .requiredOption('--text <text>', 'Text to convert to speech')
+    .option('--text <text>', 'Text to convert to speech')
+    .option('--batch <file>', 'Batch file with texts (.txt, .json, .csv)')
     .option('--model <model>', 'TTS model')
     .option('--speed <speed>', 'Playback speed multiplier')
     .option('--instructions <text>', 'Voice style instructions (OpenAI gpt-4o-mini-tts only)')
@@ -33,6 +35,87 @@ export function createVoiceCommand(): Command {
     .option('--debug', 'Enable debug logging', false)
     .action(async (opts) => {
       const log = getLogger();
+
+      // Batch mode
+      if (opts.batch) {
+        try {
+          const items = parseBatchFile(opts.batch);
+          if (items.length === 0) {
+            throw new MediaGenError('INVALID_INPUT', 'Batch file is empty');
+          }
+
+          const providerName = resolveProvider(opts.provider, 'voice');
+          const model = resolveModel(opts.model, 'voice');
+          const voiceId = resolveVoiceId(opts.voiceId);
+
+          if (!providerName) {
+            throw new MediaGenError('INVALID_INPUT', 'No provider specified. Use --provider or set MEDIA_GEN_VOICE_PROVIDER in .env');
+          }
+          if (!voiceId) {
+            throw new MediaGenError('INVALID_INPUT', 'No voice ID specified. Use --voice-id or set MEDIA_GEN_VOICE_ID in .env');
+          }
+
+          if (opts.dryRun) {
+            printResponse({ ok: true, type: 'batch-tts', provider: providerName, model, voiceId, items: items.length, dryRun: true }, opts.json);
+            return;
+          }
+
+          const provider = getProvider(providerName);
+          if (!provider.textToSpeech) {
+            throw new MediaGenError('CAPABILITY_NOT_SUPPORTED', `Provider "${providerName}" does not support TTS`, { provider: providerName });
+          }
+
+          const ext = opts.format || 'mp3';
+          const results = await runBatch(items, async (item, index) => {
+            const outputFile = resolveOutputPath(
+              item.output || `tts-batch-${index + 1}-${Date.now()}.${ext}`,
+              { outputDir: opts.outputDir || './outputs', allowExternalOutput: opts.allowExternalOutput },
+            );
+            checkOverwrite(outputFile, opts.overwrite);
+            ensureOutputDir(outputFile);
+
+            const result = await provider.textToSpeech!({
+              text: item.prompt,
+              voiceId: item.voiceId || voiceId,
+              model,
+              speed: opts.speed ? parseFloat(opts.speed) : undefined,
+              format: opts.format,
+              instructions: opts.instructions,
+              outputFile,
+            });
+            return { outputFile: result.outputFile };
+          }, {
+            onProgress: (completed, total, result) => {
+              if (!opts.json) {
+                const status = result.ok ? '✓' : '✗';
+                console.log(`  ${status} [${completed}/${total}] ${result.prompt.substring(0, 60)}${result.prompt.length > 60 ? '...' : ''}`);
+              }
+            },
+          });
+
+          const succeeded = results.filter((r) => r.ok).length;
+          const failed = results.filter((r) => !r.ok).length;
+
+          if (opts.json) {
+            console.log(JSON.stringify({ ok: true, type: 'batch-tts', provider: providerName, model, voiceId, total: items.length, succeeded, failed, results }, null, 2));
+          } else {
+            console.log(`\nBatch complete: ${succeeded} succeeded, ${failed} failed out of ${items.length}`);
+          }
+        } catch (err) {
+          log.error(err, 'Batch TTS error');
+          printResponse(toErrorResponse(err), opts.json);
+          process.exitCode = 1;
+        }
+        return;
+      }
+
+      // Single mode
+      if (!opts.text) {
+        printResponse(toErrorResponse(new MediaGenError('INVALID_INPUT', 'Either --text or --batch is required')), opts.json);
+        process.exitCode = 1;
+        return;
+      }
+
       try {
         const providerName = resolveProvider(opts.provider, 'voice');
         const model = resolveModel(opts.model, 'voice');
