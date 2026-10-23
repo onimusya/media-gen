@@ -17,6 +17,7 @@ import type {
   TextResult,
 } from '../../core/provider.js';
 import { MediaGenError } from '../../core/errors.js';
+import { validateImageSize } from '../../core/validation.js';
 import { getProviderConfig } from '../../core/config.js';
 import { getLogger } from '../../core/logger.js';
 import { writeBuffer, ensureParentDir } from '../../utils/fs.js';
@@ -83,6 +84,7 @@ export class AzureProvider implements FullProvider {
     const log = getLogger();
     const startTime = Date.now();
     const model = input.model || 'gpt-image-2';
+    validateImageSize(input.size, this.id, model);
 
     log.debug({ model, prompt: input.prompt }, 'Azure image generation');
 

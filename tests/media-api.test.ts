@@ -10,6 +10,7 @@ import { OpenAIProvider } from '../src/providers/openai/index.js';
 import { OpenRouterProvider } from '../src/providers/openrouter/index.js';
 import { LumaProvider } from '../src/providers/luma/index.js';
 import { FalProvider } from '../src/providers/fal/index.js';
+import { AzureProvider } from '../src/providers/azure/index.js';
 import catalog from '../src/models.json';
 import { getProvider } from '../src/providers/registry.js';
 
@@ -173,6 +174,24 @@ describe('Current media REST contracts', () => {
     fetchMock.mockResolvedValue(json({ data: [{ b64_json: 'aW1hZ2U=' }] }));
     await new OpenAIProvider().generateImage({ model: 'gpt-image-2.5-sunburst', prompt: 'cat', quality: 'xhigh', outputFile: output() });
     expect(request()).toMatchObject({ model: 'gpt-image-2.5-sunburst', quality: 'xhigh' });
+  });
+
+  it.each(['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst', 'gpt-image-2', 'custom-image-deployment'])('rejects unaligned Azure dimensions before fetching for %s', async model => {
+    await expect(new AzureProvider().generateImage({ model, prompt: 'cat', size: '1920x1080', outputFile: output() }))
+      .rejects.toMatchObject({ code: 'INVALID_INPUT', suggestion: expect.stringContaining('1920x1088') });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('passes aligned OpenAI dimensions through unchanged', async () => {
+    fetchMock.mockResolvedValue(json({ data: [{ b64_json: 'aW1hZ2U=' }] }));
+    await new OpenAIProvider().generateImage({ model: 'gpt-image-2.5-flare', prompt: 'cat', size: '1920x1088', outputFile: output() });
+    expect(request().size).toBe('1920x1088');
+  });
+
+  it('rejects unaligned OpenAI edit sizes before reading an image or fetching', async () => {
+    await expect(new OpenAIProvider().editImage({ model: 'gpt-image-2.5-flare', image: 'missing.png', prompt: 'cat', size: '1920x1080', outputFile: output() }))
+      .rejects.toMatchObject({ code: 'INVALID_INPUT' });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('all advertised capabilities have an implemented method and listed model', () => {

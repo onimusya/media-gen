@@ -1,6 +1,6 @@
 {
   "name": "media-generation",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Generate images, videos, speech, and transcriptions through 13 AI providers. Supports 100+ models with structured JSON output for agent integration.",
   "author": {
     "name": "Francis Hor",

@@ -29,6 +29,25 @@ export function validateSizeFormat(size: string): void {
   }
 }
 
+/** GPT Image 2/2.5 custom dimensions must align to 16-pixel boundaries. */
+export function validateImageSize(size: string | undefined, provider: string, model?: string): void {
+  // Azure permits arbitrary deployment names, so apply this to its image endpoint.
+  if (provider !== 'azure' && !(provider === 'openai' && (!model || /^gpt-image-2(?:[.-]|$)/.test(model)))) return;
+  if (!size || size === 'auto') return;
+  validateSizeFormat(size);
+  const [width, height] = size.split('x').map(Number);
+  if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width <= 0 || height <= 0) {
+    throw new MediaGenError('INVALID_INPUT', 'Image width and height must be positive integers.', { provider });
+  }
+  if (width % 16 !== 0 || height % 16 !== 0) {
+    const aligned = (edge: number) => Math.max(16, Math.round(edge / 16) * 16);
+    throw new MediaGenError('INVALID_INPUT', `Invalid size '${size}'. Width and height must both be divisible by 16.`, {
+      provider,
+      suggestion: `Use --size ${aligned(width)}x${aligned(height)} (nearest aligned dimensions), or --size 1536x864 for exact 16:9.`,
+    });
+  }
+}
+
 export function validateAspectRatio(ratio: string): void {
   if (!/^\d+:\d+$/.test(ratio)) {
     throw new MediaGenError('INVALID_INPUT', `Invalid aspect ratio: "${ratio}". Expected format: W:H (e.g., 16:9)`);

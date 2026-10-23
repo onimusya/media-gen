@@ -1,5 +1,19 @@
 # Release Notes
 
+## v1.6.1 (2026-10-23)
+
+### Fixes
+
+- Validate Azure GPT Image 2/2.5 custom dimensions locally before making an API request.
+- Require width and height to be positive integers divisible by 16 for Azure image deployments and OpenAI GPT Image 2 models.
+- Suggest the nearest aligned dimensions when validation fails; for example, `1920x1080` now suggests `1920x1088`, with `1536x864` documented as an exact 16:9 option.
+- Apply the same validation to generation, editing, batch requests, and dry runs.
+
+### Validation
+
+- 67 tests covering provider API contracts, image-size validation, model catalog consistency, and command model resolution.
+- TypeScript checks, production build, and valid/invalid Azure CLI dry runs pass. No paid generation requests were used.
+
 ## v1.6.0 (2026-10-23)
 
 ### Models and capabilities

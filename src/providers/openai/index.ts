@@ -16,6 +16,7 @@ import type {
   TextResult,
 } from '../../core/provider.js';
 import { MediaGenError } from '../../core/errors.js';
+import { validateImageSize } from '../../core/validation.js';
 import { getProviderConfig } from '../../core/config.js';
 import { getLogger } from '../../core/logger.js';
 import { writeBuffer, ensureParentDir } from '../../utils/fs.js';
@@ -64,6 +65,7 @@ export class OpenAIProvider implements FullProvider {
   }
 
   async generateImage(input: ImageGenerationInput): Promise<MediaResult> {
+    validateImageSize(input.size, this.id, input.model);
     const log = getLogger();
     const startTime = Date.now();
 
@@ -118,6 +120,7 @@ export class OpenAIProvider implements FullProvider {
   }
 
   async editImage(input: ImageEditInput): Promise<MediaResult> {
+    validateImageSize(input.size, this.id, input.model);
     const log = getLogger();
     const startTime = Date.now();
 

@@ -292,6 +292,12 @@ Documentation: [Images and editing](https://ai.google.dev/gemini-api/docs/image-
 Pass your deployed model/deployment name to `--model`; the IDs above are
 the bundled model families, and deployment availability varies by region.
 
+GPT Image 2/2.5 custom sizes require both dimensions to be divisible by 16.
+`1920x1080` is invalid: use `--size 1920x1088` for the nearest aligned dimensions,
+or `--size 1536x864` for an exact 16:9 image. The CLI reports an `INVALID_INPUT`
+error with a suggested size before sending an invalid request, including in dry runs.
+See the [image size requirements](https://developers.openai.com/api/reference/resources/images/methods/generate).
+
 Documentation: [Azure OpenAI documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/overview).
 
 </details>

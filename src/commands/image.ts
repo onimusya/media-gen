@@ -8,7 +8,7 @@ import { resolveOutputPath, checkOverwrite, ensureOutputDir, writeMetadata, prin
 import { MediaGenError, toErrorResponse } from '../core/errors.js';
 import type { SuccessResponse } from '../core/errors.js';
 import { getLogger } from '../core/logger.js';
-import { validateFileExists } from '../core/validation.js';
+import { validateFileExists, validateImageSize } from '../core/validation.js';
 import { resolveProvider, resolveModel } from '../core/config.js';
 import { parseBatchFile, runBatch } from '../utils/batch.js';
 
@@ -53,6 +53,7 @@ export function createImageCommand(): Command {
           }
 
           if (opts.dryRun) {
+            for (const item of items) validateImageSize(opts.size, providerName, item.model || model);
             printResponse({ ok: true, type: 'batch-image', provider: providerName, model, items: items.length, dryRun: true }, opts.json);
             return;
           }
@@ -125,6 +126,7 @@ export function createImageCommand(): Command {
         );
 
         if (opts.dryRun) {
+          validateImageSize(opts.size, provider, model);
           const response: SuccessResponse = {
             ok: true,
             type: 'image',
@@ -226,6 +228,7 @@ export function createImageCommand(): Command {
         );
 
         if (opts.dryRun) {
+          validateImageSize(opts.size, providerName, model);
           printResponse({ ok: true, type: 'image-edit', provider: providerName, outputFile, dryRun: true }, opts.json);
           return;
         }
