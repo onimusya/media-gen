@@ -63,7 +63,7 @@ export class RunwayProvider implements FullProvider {
       model,
       promptText: input.prompt,
     };
-    if (input.size) body.ratio = this.sizeToRatio(input.size);
+    body.ratio = input.size ? input.size.replace('x', ':') : '1024:1024';
 
     const response = await fetch('https://api.dev.runwayml.com/v1/text_to_image', {
       method: 'POST',
@@ -109,24 +109,22 @@ export class RunwayProvider implements FullProvider {
     throw new MediaGenError('JOB_TIMEOUT', 'Image generation timed out', { provider: 'runway' });
   }
 
-  private sizeToRatio(size: string): string {
-    const [w, h] = size.split('x').map(Number);
-    if (w === h) return '1:1';
-    if (w > h) return '16:9';
-    return '9:16';
+  private videoRatio(ratio?: string): string {
+    const ratios: Record<string, string> = { '16:9': '1280:720', '9:16': '720:1280', '1:1': '960:960' };
+    return ratios[ratio || '16:9'] || ratio!;
   }
 
   async generateVideo(input: VideoGenerationInput): Promise<AsyncMediaResult> {
     const log = getLogger();
-    const model = input.model || 'gen4_turbo';
+    const model = input.model || 'gen4.5';
     log.debug({ model, prompt: input.prompt }, 'Runway video generation');
 
     const body: Record<string, unknown> = {
       model,
       promptText: input.prompt,
     };
-    if (input.duration) body.duration = input.duration;
-    if (input.aspectRatio) body.ratio = input.aspectRatio;
+    body.duration = input.duration || 5;
+    body.ratio = this.videoRatio(input.aspectRatio);
 
     const response = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
       method: 'POST',
@@ -156,8 +154,9 @@ export class RunwayProvider implements FullProvider {
       model: input.model || 'gen4_turbo',
       promptImage: dataUrl,
       promptText: input.prompt || '',
+      ratio: this.videoRatio(input.aspectRatio),
     };
-    if (input.duration) body.duration = input.duration;
+    body.duration = input.duration || 5;
 
     const response = await fetch('https://api.dev.runwayml.com/v1/image_to_video', {
       method: 'POST',
@@ -196,6 +195,7 @@ export class RunwayProvider implements FullProvider {
       RUNNING: 'processing',
       SUCCEEDED: 'completed',
       FAILED: 'failed',
+      CANCELLED: 'failed',
     };
 
     return {

@@ -223,6 +223,8 @@ export class MinimaxProvider implements FullProvider {
     const body: Record<string, unknown> = {
       model,
       text: input.text,
+      stream: false,
+      output_format: 'hex',
       voice_setting: {
         voice_id: voiceId,
         speed: input.speed || 1.0,
@@ -246,16 +248,16 @@ export class MinimaxProvider implements FullProvider {
     }
 
     const data = (await response.json()) as {
-      audio_file?: string;
+      data?: { audio?: string };
       base_resp: { status_code: number; status_msg: string };
     };
 
-    if (data.base_resp.status_code !== 0 || !data.audio_file) {
+    if (data.base_resp.status_code !== 0 || !data.data?.audio) {
       throw new MediaGenError('API_ERROR', data.base_resp.status_msg || 'TTS failed', { provider: 'minimax' });
     }
 
-    // audio_file is hex-encoded audio data
-    const buffer = Buffer.from(data.audio_file, 'hex');
+    // data.audio is hex-encoded audio data
+    const buffer = Buffer.from(data.data.audio, 'hex');
     ensureParentDir(input.outputFile);
     writeFileSync(input.outputFile, buffer);
 

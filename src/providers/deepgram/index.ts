@@ -89,7 +89,7 @@ export class DeepgramProvider implements FullProvider {
 
     const audioBuffer = readFileSync(input.inputFile);
     const mime = getMimeType(input.inputFile);
-    const model = input.model || 'nova-2';
+    const model = input.model || 'nova-3';
 
     const params = new URLSearchParams({ model, punctuate: 'true', utterances: 'true' });
     if (input.language) params.set('language', input.language);
@@ -148,7 +148,7 @@ export class DeepgramProvider implements FullProvider {
 
     const audioBuffer = readFileSync(input.inputFile);
     const mime = getMimeType(input.inputFile);
-    const model = input.model || 'nova-2';
+    const model = input.model || 'nova-3';
 
     const params = new URLSearchParams({
       model,

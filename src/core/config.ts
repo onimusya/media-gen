@@ -80,7 +80,7 @@ export function ensureHomeEnv(): void {
 # OpenAI (images, TTS, transcription)
 # OPENAI_API_KEY=
 
-# Google (Imagen, Veo, Gemini TTS)
+# Google (Nano Banana images, Omni video, Gemini TTS)
 # GOOGLE_GENERATIVE_AI_API_KEY=
 
 # Azure AI Services (OpenAI-compatible endpoint)
@@ -98,6 +98,7 @@ export function ensureHomeEnv(): void {
 
 # Luma AI (video)
 # LUMA_API_KEY=
+# LUMA_AGENTS_API_KEY=
 
 # Replicate (images, video)
 # REPLICATE_API_TOKEN=
@@ -216,6 +217,10 @@ export function loadConfig(cwd?: string): MediaGenConfig {
         config.providers[providerId][field] = value;
       }
     }
+  }
+
+  if (process.env.LUMA_AGENTS_API_KEY) {
+    config.providers.luma = { ...config.providers.luma, apiKey: process.env.LUMA_AGENTS_API_KEY };
   }
 
   return config;

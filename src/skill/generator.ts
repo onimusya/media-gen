@@ -55,7 +55,7 @@ MEDIA_GEN_DEFAULT_MODEL=openai/gpt-image-2
 MEDIA_GEN_VOICE_PROVIDER=edge-tts
 MEDIA_GEN_VOICE_ID=en-US-EmmaMultilingualNeural
 MEDIA_GEN_VIDEO_PROVIDER=google
-MEDIA_GEN_VIDEO_MODEL=veo-3.1-generate-preview
+MEDIA_GEN_VIDEO_MODEL=gemini-omni-1.1-flash
 MEDIA_GEN_AUDIO_PROVIDER=deepgram
 MEDIA_GEN_AUDIO_MODEL=nova-3
 \`\`\`

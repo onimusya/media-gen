@@ -1,6 +1,6 @@
 /**
  * Google provider adapter for media-gen-cli.
- * Supports: image generation (Imagen), video generation (Veo).
+ * Supports: Nano Banana images/editing, Omni video, Gemini speech.
  * Uses the Gemini API (generativelanguage.googleapis.com/v1beta).
  */
 
@@ -9,6 +9,8 @@ import type {
   ProviderCapability,
   ValidationResult,
   ImageGenerationInput,
+  ImageEditInput,
+  ImageToVideoInput,
   VideoGenerationInput,
   TextToSpeechInput,
   MediaResult,
@@ -20,14 +22,20 @@ import { getProviderConfig } from '../../core/config.js';
 import { getLogger } from '../../core/logger.js';
 import { writeBuffer, ensureParentDir } from '../../utils/fs.js';
 import { getMimeType } from '../../utils/mime.js';
-import { statSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+
+interface InteractionResponse {
+  steps?: Array<{ type: string; content?: Array<{ type: string; data?: string; mime_type?: string }> }>;
+}
 
 export class GoogleProvider implements FullProvider {
   id = 'google';
-  name = 'Google (Gemini / Imagen / Veo)';
+  name = 'Google (Gemini / Nano Banana / Omni)';
   capabilities: ProviderCapability[] = [
     'image-generate',
+    'image-edit',
     'video-generate',
+    'video-image-to-video',
     'voice-tts',
   ];
 
@@ -66,54 +74,78 @@ export class GoogleProvider implements FullProvider {
   }
 
   async generateImage(input: ImageGenerationInput): Promise<MediaResult> {
-    const log = getLogger();
-    const startTime = Date.now();
-    const model = input.model || 'imagen-3.0-generate-002';
-
-    log.debug({ model, prompt: input.prompt }, 'Google image generation');
-
-    const url = `${this.getBaseUrl()}/models/${model}:predict`;
-
-    const body = {
-      instances: [{ prompt: input.prompt }],
-      parameters: {
-        sampleCount: input.n || 1,
-        ...(input.size && { aspectRatio: this.sizeToAspectRatio(input.size) }),
-      },
-    };
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      const message = (err as Record<string, Record<string, string>>)?.error?.message || `HTTP ${response.status}`;
-      throw new MediaGenError('API_ERROR', message, { provider: 'google' });
+    const model = input.model || 'gemini-nano-banana-2.1';
+    if (!model.startsWith('gemini-')) {
+      throw new MediaGenError('INVALID_INPUT', 'Imagen is shut down in the Gemini API. Use gemini-nano-banana-2.1.', { provider: 'google' });
     }
-
-    const data = (await response.json()) as {
-      predictions: Array<{ bytesBase64Encoded: string; mimeType: string }>;
-    };
-
-    const imageData = data.predictions[0];
-    const buffer = Buffer.from(imageData.bytesBase64Encoded, 'base64');
-    ensureParentDir(input.outputFile);
-    writeBuffer(input.outputFile, buffer);
-
-    return {
-      outputFile: input.outputFile,
-      mimeType: imageData.mimeType || getMimeType(input.outputFile),
-      sizeBytes: statSync(input.outputFile).size,
-      durationMs: Date.now() - startTime,
-    };
+    return this.generateInteractionImage(input, model);
   }
 
-  async generateVideo(input: VideoGenerationInput): Promise<AsyncMediaResult> {
+  private async interaction(body: Record<string, unknown>): Promise<InteractionResponse> {
+    const response = await fetch(`${this.getBaseUrl()}/interactions`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ ...body, store: false }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({})) as { error?: { message?: string } };
+      throw new MediaGenError('API_ERROR', err.error?.message || `HTTP ${response.status}`, { provider: 'google' });
+    }
+    return await response.json() as InteractionResponse;
+  }
+
+  private saveInteraction(data: InteractionResponse, type: string, outputFile: string, startTime: number): MediaResult {
+    // output_image/audio/video are SDK helpers; REST returns model_output steps.
+    const parts = data.steps?.filter(step => step.type === 'model_output')
+      .flatMap(step => step.content || []).filter(part => part.type === type && part.data);
+    const part = parts?.[parts.length - 1];
+    if (!part?.data) {
+      throw new MediaGenError('API_ERROR', `No ${type} data in interaction response`, { provider: 'google' });
+    }
+    let buffer: Buffer = Buffer.from(part.data, 'base64');
+    let mimeType = part.mime_type || getMimeType(outputFile);
+    if (type === 'audio' && /audio\/(L16|pcm)/i.test(mimeType)) {
+      const rate = Number(/rate=(\d+)/i.exec(mimeType)?.[1] || 24000);
+      buffer = this.pcmToWav(buffer, rate, 1, 16);
+      mimeType = 'audio/wav';
+    }
+    ensureParentDir(outputFile);
+    writeBuffer(outputFile, buffer);
+    return { outputFile, mimeType, sizeBytes: buffer.length, durationMs: Date.now() - startTime };
+  }
+
+  private async generateInteractionImage(input: ImageGenerationInput | ImageEditInput, model: string): Promise<MediaResult> {
+    const startTime = Date.now();
+    const maxSide = input.size ? Math.max(...input.size.split('x').map(Number)) : 1024;
+    const content: Record<string, unknown>[] = [{ type: 'text', text: input.prompt }];
+    if ('image' in input) {
+      if (input.mask) throw new MediaGenError('INVALID_INPUT', 'Google image editing does not support masks', { provider: 'google' });
+      content.push({ type: 'image', data: readFileSync(input.image).toString('base64'), mime_type: getMimeType(input.image) });
+    }
+    const data = await this.interaction({
+      model,
+      input: [{ type: 'user_input', content }],
+      response_format: {
+        type: 'image',
+        ...(input.size && { aspect_ratio: this.sizeToAspectRatio(input.size), image_size: maxSide > 2048 ? '4K' : maxSide > 1024 ? '2K' : '1K' }),
+      },
+    });
+    return this.saveInteraction(data, 'image', input.outputFile, startTime);
+  }
+
+  async editImage(input: ImageEditInput): Promise<MediaResult> {
+    const model = input.model || 'gemini-nano-banana-2.1';
+    if (!model.startsWith('gemini-')) throw new MediaGenError('INVALID_INPUT', 'Use a Gemini image model for editing', { provider: 'google' });
+    return this.generateInteractionImage(input, model);
+  }
+
+  async generateVideo(input: VideoGenerationInput): Promise<AsyncMediaResult | MediaResult> {
+    const model = input.model || 'gemini-omni-1.1-flash';
+    if (model.startsWith('gemini-omni-')) return this.generateOmniVideo(input);
+    if (model.startsWith('veo-3.1-') && model.endsWith('-preview')) {
+      throw new MediaGenError('INVALID_INPUT', 'Veo 3.1 Preview shut down on 2026-10-22. Use gemini-omni-1.1-flash.', { provider: 'google' });
+    }
     const log = getLogger();
-    const model = input.model || 'veo-3.1-generate-preview';
 
     log.debug({ model, prompt: input.prompt }, 'Google video generation');
 
@@ -124,6 +156,7 @@ export class GoogleProvider implements FullProvider {
       parameters: {
         ...(input.duration && { durationSeconds: input.duration }),
         ...(input.aspectRatio && { aspectRatio: input.aspectRatio }),
+        ...(input.resolution && { resolution: input.resolution }),
       },
     };
 
@@ -147,6 +180,31 @@ export class GoogleProvider implements FullProvider {
       provider: 'google',
       status: 'processing',
     };
+  }
+
+  private async generateOmniVideo(input: VideoGenerationInput | ImageToVideoInput): Promise<MediaResult> {
+    const startTime = Date.now();
+    const content: Record<string, unknown>[] = [{ type: 'text', text: input.prompt || 'Animate this image.' }];
+    if ('image' in input) content.push({ type: 'image', data: readFileSync(input.image).toString('base64'), mime_type: getMimeType(input.image) });
+    // Omni timing is prompt-controlled; there is no durationSeconds request field.
+    if (input.duration) content.push({ type: 'text', text: `Generate a video lasting ${input.duration} seconds.` });
+    const data = await this.interaction({
+      model: input.model || 'gemini-omni-1.1-flash',
+      input: [{ type: 'user_input', content }],
+      response_format: {
+        type: 'video',
+        ...(input.aspectRatio && { aspect_ratio: input.aspectRatio }),
+        ...('resolution' in input && input.resolution && { resolution: input.resolution }),
+      },
+    });
+    return this.saveInteraction(data, 'video', input.outputFile, startTime);
+  }
+
+  async imageToVideo(input: ImageToVideoInput): Promise<MediaResult> {
+    if (input.model && !input.model.startsWith('gemini-omni-')) {
+      throw new MediaGenError('INVALID_INPUT', 'Use gemini-omni-1.1-flash for Google image-to-video', { provider: 'google' });
+    }
+    return this.generateOmniVideo(input);
   }
 
   async getJobStatus(jobId: string): Promise<JobStatusResult> {
@@ -243,7 +301,7 @@ export class GoogleProvider implements FullProvider {
   async textToSpeech(input: TextToSpeechInput): Promise<MediaResult> {
     const log = getLogger();
     const startTime = Date.now();
-    const model = input.model || 'gemini-3.1-flash-tts-preview';
+    const model = input.model || 'gemini-3.8-flash-tts';
     const voice = input.voiceId || 'Kore';
 
     log.debug({ model, voice }, 'Google Gemini TTS');
@@ -251,7 +309,10 @@ export class GoogleProvider implements FullProvider {
     const url = `${this.getBaseUrl()}/interactions`;
     const body = {
       model,
-      input: input.text,
+      input: [{ type: 'user_input', content: [{ type: 'text', text: input.text,
+        ...(input.instructions && { annotations: [{ type: 'speech_metadata', style: input.instructions }] }),
+      }] }],
+      store: false,
       response_format: { type: 'audio' },
       generation_config: {
         speech_config: [{ voice }],
@@ -270,29 +331,8 @@ export class GoogleProvider implements FullProvider {
       throw new MediaGenError('API_ERROR', message, { provider: 'google' });
     }
 
-    const data = (await response.json()) as {
-      output_audio?: { data: string };
-    };
-
-    if (!data.output_audio?.data) {
-      throw new MediaGenError('API_ERROR', 'No audio data in response', { provider: 'google' });
-    }
-
-    // Output is base64-encoded PCM (24kHz, 16-bit, mono)
-    // Convert to WAV format
-    const pcmBuffer = Buffer.from(data.output_audio.data, 'base64');
-    const wavBuffer = this.pcmToWav(pcmBuffer, 24000, 1, 16);
-
-    ensureParentDir(input.outputFile);
-    writeFileSync(input.outputFile, wavBuffer);
-
-    return {
-      outputFile: input.outputFile,
-      mimeType: getMimeType(input.outputFile),
-      sizeBytes: wavBuffer.length,
-      durationMs: Date.now() - startTime,
-      metadata: { voice, model },
-    };
+    const data = await response.json() as InteractionResponse;
+    return { ...this.saveInteraction(data, 'audio', input.outputFile, startTime), metadata: { voice, model } };
   }
 
   private pcmToWav(pcmData: Buffer, sampleRate: number, channels: number, bitDepth: number): Buffer {
@@ -327,8 +367,8 @@ export class GoogleProvider implements FullProvider {
 
   private sizeToAspectRatio(size: string): string {
     const [w, h] = size.split('x').map(Number);
-    if (w === h) return '1:1';
-    if (w > h) return '16:9';
-    return '9:16';
+    const ratios = ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'];
+    const distance = (ratio: string) => { const [a, b] = ratio.split(':').map(Number); return Math.abs(a / b - w / h); };
+    return ratios.reduce((best, ratio) => distance(ratio) < distance(best) ? ratio : best);
   }
 }

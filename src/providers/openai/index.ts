@@ -70,14 +70,14 @@ export class OpenAIProvider implements FullProvider {
     log.debug({ model: input.model, prompt: input.prompt }, 'OpenAI image generation');
 
     const body: Record<string, unknown> = {
-      model: input.model || 'gpt-image-1',
+      model: input.model || 'gpt-image-2.5-flare',
       prompt: input.prompt,
       n: input.n || 1,
       size: input.size || '1024x1024',
     };
 
     if (input.quality) body.quality = input.quality;
-    if (input.style) body.style = input.style;
+    if (input.style) throw new MediaGenError('INVALID_INPUT', 'GPT Image models do not support style; describe the style in your prompt.', { provider: 'openai' });
 
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
@@ -127,7 +127,7 @@ export class OpenAIProvider implements FullProvider {
     const imageBuffer = readFileSync(input.image);
     formData.append('image', new Blob([imageBuffer]), 'image.png');
     formData.append('prompt', input.prompt);
-    formData.append('model', input.model || 'gpt-image-1');
+    formData.append('model', input.model || 'gpt-image-2.5-flare');
     if (input.size) formData.append('size', input.size);
     if (input.mask) {
       const maskBuffer = readFileSync(input.mask);
@@ -178,7 +178,7 @@ export class OpenAIProvider implements FullProvider {
     log.debug({ voiceId: input.voiceId, model: input.model }, 'OpenAI TTS');
 
     const body: Record<string, unknown> = {
-      model: input.model || 'tts-1',
+      model: input.model || 'gpt-4o-mini-tts',
       input: input.text,
       voice: input.voiceId,
       response_format: input.format || 'mp3',
@@ -221,7 +221,7 @@ export class OpenAIProvider implements FullProvider {
     const formData = new FormData();
     formData.append('file', new Blob([audioBuffer]), 'audio.mp3');
     formData.append('model', input.model || 'whisper-1');
-    formData.append('response_format', 'verbose_json');
+    formData.append('response_format', !input.model || input.model === 'whisper-1' ? 'verbose_json' : 'json');
     if (input.language) formData.append('language', input.language);
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {

@@ -69,7 +69,7 @@ export class OpenRouterProvider implements FullProvider {
   async generateImage(input: ImageGenerationInput): Promise<MediaResult> {
     const log = getLogger();
     const startTime = Date.now();
-    const model = input.model || 'openai/gpt-image-1';
+    const model = input.model || 'openai/gpt-image-2.5-flare';
 
     log.debug({ model, prompt: input.prompt }, 'OpenRouter image generation');
 
@@ -105,6 +105,7 @@ export class OpenRouterProvider implements FullProvider {
         b64_json?: string;
         url?: string;
         revised_prompt?: string;
+        media_type?: string;
       }>;
     };
 
@@ -131,7 +132,7 @@ export class OpenRouterProvider implements FullProvider {
     const size = statSync(input.outputFile).size;
     return {
       outputFile: input.outputFile,
-      mimeType: getMimeType(input.outputFile),
+      mimeType: imageData.media_type || getMimeType(input.outputFile),
       sizeBytes: size,
       durationMs: Date.now() - startTime,
       metadata: { revisedPrompt: imageData.revised_prompt },
@@ -178,8 +179,9 @@ export class OpenRouterProvider implements FullProvider {
       polling_url?: string;
     };
 
+    if (!data.id) throw new MediaGenError('API_ERROR', 'No video job ID returned', { provider: 'openrouter' });
     return {
-      jobId: data.id || data.generation_id || 'unknown',
+      jobId: data.id,
       provider: 'openrouter',
       status: 'queued',
       statusUrl: data.polling_url
@@ -208,8 +210,11 @@ export class OpenRouterProvider implements FullProvider {
     const statusMap: Record<string, import('../../core/provider.js').JobStatusResult['status']> = {
       pending: 'queued',
       processing: 'processing',
+      in_progress: 'processing',
       completed: 'completed',
       failed: 'failed',
+      cancelled: 'failed',
+      expired: 'failed',
     };
 
     return {

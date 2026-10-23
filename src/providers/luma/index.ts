@@ -52,6 +52,9 @@ export class LumaProvider implements FullProvider {
   }
 
   async generateVideo(input: VideoGenerationInput): Promise<AsyncMediaResult> {
+    if (!input.model || input.model === 'ray-3.2') {
+      return this.submitAgentsVideo(input);
+    }
     const log = getLogger();
     const model = input.model || 'ray-2';
     log.debug({ model, prompt: input.prompt }, 'Luma video generation');
@@ -81,6 +84,9 @@ export class LumaProvider implements FullProvider {
   }
 
   async imageToVideo(input: ImageToVideoInput): Promise<AsyncMediaResult> {
+    if (!input.model || input.model === 'ray-3.2') {
+      return this.submitAgentsVideo(input);
+    }
     const log = getLogger();
     log.debug({ model: input.model, image: input.image }, 'Luma image-to-video');
 
@@ -114,7 +120,7 @@ export class LumaProvider implements FullProvider {
 
   async getJobStatus(jobId: string): Promise<JobStatusResult> {
     const response = await fetch(
-      `https://api.lumalabs.ai/dream-machine/v1/generations/${jobId}`,
+      this.jobUrl(jobId),
       { headers: this.getHeaders() },
     );
 
@@ -131,6 +137,9 @@ export class LumaProvider implements FullProvider {
     const stateMap: Record<string, JobStatusResult['status']> = {
       queued: 'queued',
       dreaming: 'processing',
+      processing: 'processing',
+      running: 'processing',
+      pending: 'queued',
       completed: 'completed',
       failed: 'failed',
     };
@@ -146,7 +155,7 @@ export class LumaProvider implements FullProvider {
   async downloadJob(jobId: string, outputFile: string): Promise<MediaResult> {
     const startTime = Date.now();
     const response = await fetch(
-      `https://api.lumalabs.ai/dream-machine/v1/generations/${jobId}`,
+      this.jobUrl(jobId),
       { headers: this.getHeaders() },
     );
 
@@ -154,13 +163,14 @@ export class LumaProvider implements FullProvider {
       throw new MediaGenError('API_ERROR', `Failed to get job: HTTP ${response.status}`, { provider: 'luma' });
     }
 
-    const data = (await response.json()) as { state: string; assets?: { video?: string } };
-    if (data.state !== 'completed' || !data.assets?.video) {
+    const data = (await response.json()) as { state: string; assets?: { video?: string }; output?: Array<{ url?: string }> };
+    const videoUrl = data.output?.[0]?.url || data.assets?.video;
+    if (data.state !== 'completed' || !videoUrl) {
       throw new MediaGenError('JOB_FAILED', 'Job not completed or no video available', { provider: 'luma' });
     }
 
     ensureParentDir(outputFile);
-    await downloadFile(data.assets.video, outputFile);
+    await downloadFile(videoUrl, outputFile);
 
     return {
       outputFile,
@@ -168,5 +178,30 @@ export class LumaProvider implements FullProvider {
       sizeBytes: statSync(outputFile).size,
       durationMs: Date.now() - startTime,
     };
+  }
+
+  private jobUrl(jobId: string): string {
+    return jobId.startsWith('agents::')
+      ? `https://agents.lumalabs.ai/v1/generations/${encodeURIComponent(jobId.slice(8))}`
+      : `https://api.lumalabs.ai/dream-machine/v1/generations/${encodeURIComponent(jobId)}`;
+  }
+
+  private async submitAgentsVideo(input: VideoGenerationInput | ImageToVideoInput): Promise<AsyncMediaResult> {
+    const video: Record<string, unknown> = {
+      duration: `${input.duration || 5}s`,
+      resolution: 'resolution' in input && input.resolution || '720p',
+    };
+    if ('image' in input) video.start_frame = { data: readFileSync(input.image).toString('base64'), media_type: getMimeType(input.image) };
+    const response = await fetch('https://agents.lumalabs.ai/v1/generations', {
+      method: 'POST', headers: this.getHeaders(),
+      body: JSON.stringify({ model: 'ray-3.2', type: 'video', prompt: input.prompt || 'Animate this image.', aspect_ratio: input.aspectRatio || '16:9', video }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({})) as { detail?: string; message?: string };
+      throw new MediaGenError('API_ERROR', err.message || err.detail || `HTTP ${response.status}`, { provider: 'luma' });
+    }
+    const data = await response.json() as { id?: string };
+    if (!data.id) throw new MediaGenError('API_ERROR', 'No generation ID returned', { provider: 'luma' });
+    return { jobId: `agents::${data.id}`, provider: 'luma', status: 'processing' };
   }
 }

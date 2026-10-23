@@ -43,8 +43,12 @@ export class StabilityProvider implements FullProvider {
   async generateImage(input: ImageGenerationInput): Promise<MediaResult> {
     const log = getLogger();
     const startTime = Date.now();
-    const model = input.model || 'stable-diffusion-xl-1024-v1-0';
+    const model = input.model || 'stable-image-core';
     log.debug({ model, prompt: input.prompt }, 'Stability image generation');
+
+    if (model.startsWith('sd3') || model.startsWith('stable-image-')) {
+      return this.generateStableImage(input, model, startTime);
+    }
 
     const body: Record<string, unknown> = {
       text_prompts: [{ text: input.prompt, weight: 1 }],
@@ -99,5 +103,38 @@ export class StabilityProvider implements FullProvider {
       sizeBytes: statSync(input.outputFile).size,
       durationMs: Date.now() - startTime,
     };
+  }
+
+  private async generateStableImage(input: ImageGenerationInput, model: string, startTime: number): Promise<MediaResult> {
+    const endpoint = model === 'stable-image-ultra' ? 'ultra' : model === 'stable-image-core' ? 'core' : 'sd3';
+    const form = new FormData();
+    form.append('prompt', input.prompt);
+    form.append('output_format', 'png');
+    if (endpoint === 'sd3') form.append('model', model);
+    if (input.negativePrompt) form.append('negative_prompt', input.negativePrompt);
+    if (input.size) {
+      const [w, h] = input.size.split('x').map(Number);
+      const ratios = ['1:1', '16:9', '21:9', '2:3', '3:2', '4:5', '5:4', '9:16', '9:21'];
+      const ratio = ratios.reduce((best, value) => {
+        const distance = (r: string) => { const [a, b] = r.split(':').map(Number); return Math.abs(a / b - w / h); };
+        return distance(value) < distance(best) ? value : best;
+      });
+      form.append('aspect_ratio', ratio);
+    }
+    const response = await fetch(`https://api.stability.ai/v2beta/stable-image/generate/${endpoint}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${this.getApiKey()}`, Accept: 'application/json' }, body: form,
+    });
+    if (response.status === 403) throw new MediaGenError('CONTENT_POLICY_VIOLATION', 'Content filtered by Stability AI', { provider: 'stability' });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({})) as { errors?: string[]; message?: string };
+      throw new MediaGenError('API_ERROR', err.errors?.join('; ') || err.message || `HTTP ${response.status}`, { provider: 'stability' });
+    }
+    const data = await response.json() as { image?: string; finish_reason?: string };
+    if (data.finish_reason === 'CONTENT_FILTERED') throw new MediaGenError('CONTENT_POLICY_VIOLATION', 'Content filtered by Stability AI', { provider: 'stability' });
+    if (!data.image) throw new MediaGenError('API_ERROR', 'No image returned', { provider: 'stability' });
+    const buffer = Buffer.from(data.image, 'base64');
+    ensureParentDir(input.outputFile);
+    writeBuffer(input.outputFile, buffer);
+    return { outputFile: input.outputFile, mimeType: 'image/png', sizeBytes: buffer.length, durationMs: Date.now() - startTime };
   }
 }

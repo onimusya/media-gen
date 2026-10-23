@@ -72,7 +72,7 @@ export function createImageCommand(): Command {
 
             const result = await providerInstance.generateImage!({
               prompt: item.prompt,
-              model: item.model || model || 'gpt-image-2',
+              model: item.model || model || '',
               size: opts.size,
               quality: opts.quality,
               style: opts.style,
@@ -150,7 +150,7 @@ export function createImageCommand(): Command {
 
         const result = await providerInstance.generateImage({
           prompt: opts.prompt,
-          model: model || 'gpt-image-1',
+          model: model || '',
           size: opts.size,
           quality: opts.quality,
           style: opts.style,
@@ -237,14 +237,14 @@ export function createImageCommand(): Command {
         if (!providerInstance.editImage) {
           throw new MediaGenError('CAPABILITY_NOT_SUPPORTED', `Provider "${providerName}" does not support image editing`, {
             provider: providerName,
-            suggestion: 'Try: openai',
+            suggestion: 'Try: openai, google',
           });
         }
 
         const result = await providerInstance.editImage({
           image: opts.image,
           prompt: opts.prompt,
-          model: model || 'gpt-image-1',
+          model: model || '',
           mask: opts.mask,
           size: opts.size,
           outputFile,

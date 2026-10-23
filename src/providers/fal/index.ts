@@ -115,10 +115,14 @@ export class FalProvider implements FullProvider {
       throw new MediaGenError('API_ERROR', message, { provider: 'fal' });
     }
 
-    const data = (await response.json()) as { request_id: string; status_url: string };
-    // Store model:request_id so status/download can reconstruct the URL
+    const data = (await response.json()) as { request_id: string; status_url: string; response_url?: string };
+    // Preserve the provider's exact queue URLs; nested endpoints do not all
+    // share the same suffix rules. Legacy model::request IDs still work.
+    const jobId = data.response_url
+      ? `queue::${Buffer.from(JSON.stringify({ status: data.status_url, result: data.response_url })).toString('base64url')}`
+      : `${model}::${data.request_id}`;
     return {
-      jobId: `${model}::${data.request_id}`,
+      jobId,
       provider: 'fal',
       status: 'processing',
       statusUrl: data.status_url,
@@ -142,7 +146,7 @@ export class FalProvider implements FullProvider {
    */
   private getQueueModel(model: string): string {
     // Known suffixes that should be stripped for queue URLs
-    const suffixes = ['/text-to-video', '/image-to-video', '/fast/text-to-video', '/mini/text-to-video'];
+    const suffixes = ['/fast/text-to-video', '/mini/text-to-video', '/text-to-video', '/image-to-video'];
     for (const suffix of suffixes) {
       if (model.endsWith(suffix)) {
         return model.slice(0, -suffix.length);
@@ -151,12 +155,23 @@ export class FalProvider implements FullProvider {
     return model;
   }
 
-  async getJobStatus(jobId: string): Promise<JobStatusResult> {
+  private queueUrl(jobId: string, kind: 'status' | 'result'): string {
+    if (jobId.startsWith('queue::')) {
+      try {
+        const urls = JSON.parse(Buffer.from(jobId.slice(7), 'base64url').toString()) as Record<string, string>;
+        const url = new URL(urls[kind]);
+        if (url.protocol !== 'https:' || url.hostname !== 'queue.fal.run' || url.port || url.username || url.password) throw new Error('Invalid host');
+        return url.href;
+      } catch {
+        throw new MediaGenError('INVALID_INPUT', 'Invalid fal queue job ID', { provider: 'fal' });
+      }
+    }
     const { model, requestId } = this.parseJobId(jobId);
-    // Fal queue status URL uses the base model path (without endpoint suffix like /text-to-video)
-    // Extract the base: e.g., "bytedance/seedance-2.0/text-to-video" -> "bytedance/seedance-2.0"
-    const baseModel = this.getQueueModel(model);
-    const response = await fetch(`https://queue.fal.run/${baseModel}/requests/${requestId}/status`, {
+    return `https://queue.fal.run/${this.getQueueModel(model)}/requests/${requestId}${kind === 'status' ? '/status' : ''}`;
+  }
+
+  async getJobStatus(jobId: string): Promise<JobStatusResult> {
+    const response = await fetch(this.queueUrl(jobId, 'status'), {
       headers: this.getHeaders(),
     });
 
@@ -181,9 +196,7 @@ export class FalProvider implements FullProvider {
 
   async downloadJob(jobId: string, outputFile: string): Promise<MediaResult> {
     const startTime = Date.now();
-    const { model, requestId } = this.parseJobId(jobId);
-    const baseModel = this.getQueueModel(model);
-    const response = await fetch(`https://queue.fal.run/${baseModel}/requests/${requestId}`, {
+    const response = await fetch(this.queueUrl(jobId, 'result'), {
       headers: this.getHeaders(),
     });
 

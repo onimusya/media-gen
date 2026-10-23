@@ -53,7 +53,7 @@ MEDIA_GEN_VOICE_PROVIDER=edge-tts
 MEDIA_GEN_VOICE_MODEL=
 MEDIA_GEN_VOICE_ID=en-US-EmmaMultilingualNeural
 MEDIA_GEN_VIDEO_PROVIDER=google
-MEDIA_GEN_VIDEO_MODEL=veo-3.1-generate-preview
+MEDIA_GEN_VIDEO_MODEL=gemini-omni-1.1-flash
 MEDIA_GEN_AUDIO_PROVIDER=deepgram
 MEDIA_GEN_AUDIO_MODEL=nova-3
 MEDIA_GEN_LOG_LEVEL=error
@@ -75,7 +75,7 @@ node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs image generate \
 ```bash
 node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs video generate \
   --provider google \
-  --model veo-3.1-generate-preview \
+  --model gemini-omni-1.1-flash \
   --prompt "A cinematic card pack opening" \
   --duration 8 \
   --output ./outputs/video.mp4 \
@@ -171,7 +171,8 @@ node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs image generate \
 
 ## Async Video Jobs
 
-Video generation is asynchronous. Providers return a job ID instead of a file.
+OpenRouter, Luma, Runway, fal and Replicate return video job IDs. Google Omni
+returns the completed video file synchronously, including without `--wait`.
 
 ### Pattern 1: Wait for completion (simple)
 
@@ -179,8 +180,8 @@ Add `--wait` to block until the video is ready:
 
 ```bash
 node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs video generate \
-  --provider google \
-  --model veo-3.1-generate-preview \
+  --provider openrouter \
+  --model google/veo-3.1 \
   --prompt "A cinematic scene" \
   --output ./outputs/video.mp4 \
   --wait \
@@ -198,23 +199,23 @@ Without `--wait`, the CLI returns immediately with a job ID:
 ```bash
 # Start generation (returns instantly)
 node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs video generate \
-  --provider google \
-  --model veo-3.1-generate-preview \
+  --provider openrouter \
+  --model google/veo-3.1 \
   --prompt "A cinematic scene" \
   --json
-# Returns: {"ok": true, "jobId": "operations/abc123", "status": "processing"}
+# Returns: {"ok": true, "jobId": "YOUR_JOB_ID", "status": "processing"}
 
 # Check status later
 node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs job status \
-  --provider google \
-  --job-id "operations/abc123" \
+  --provider openrouter \
+  --job-id "YOUR_JOB_ID" \
   --json
 # Returns: {"ok": true, "jobId": "...", "status": "completed"}
 
 # Download the result
 node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs job download \
-  --provider google \
-  --job-id "operations/abc123" \
+  --provider openrouter \
+  --job-id "YOUR_JOB_ID" \
   --output ./outputs/video.mp4 \
   --json
 ```
@@ -229,7 +230,7 @@ node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs job download \
 
 ### Async providers
 
-Google (Veo), Luma AI, Runway, Fal.ai, and Replicate all use async for video. Image and TTS are always synchronous.
+OpenRouter, Luma AI, Runway, Fal.ai, and Replicate use async for video. Google Omni returns the completed video synchronously. Image and TTS are always synchronous.
 
 ## Response format
 

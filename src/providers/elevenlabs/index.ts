@@ -54,7 +54,7 @@ export class ElevenLabsProvider implements FullProvider {
   async textToSpeech(input: TextToSpeechInput): Promise<MediaResult> {
     const log = getLogger();
     const startTime = Date.now();
-    const model = input.model || 'eleven_multilingual_v2';
+    const model = input.model || 'eleven_v4';
 
     log.debug({ voiceId: input.voiceId, model }, 'ElevenLabs TTS');
 

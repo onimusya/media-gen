@@ -164,7 +164,7 @@ export function createVideoCommand(): Command {
 
         const result = await provider.generateVideo({
           prompt: opts.prompt,
-          model: opts.model,
+          model: model,
           duration: opts.duration ? parseFloat(opts.duration) : undefined,
           aspectRatio: opts.aspectRatio,
           resolution: opts.resolution,
@@ -176,7 +176,7 @@ export function createVideoCommand(): Command {
           if (opts.wait && provider.getJobStatus && provider.downloadJob) {
             const status = await pollForCompletion(
               result.jobId,
-              opts.provider,
+              providerName,
               (id) => provider.getJobStatus!(id),
               { wait: true, pollInterval: parseInt(opts.pollInterval), timeout: parseInt(opts.timeout) },
             );
@@ -186,13 +186,13 @@ export function createVideoCommand(): Command {
               let metadataFile: string | undefined;
               if (opts.metadata) {
                 metadataFile = writeMetadata(outputFile, {
-                  provider: opts.provider, model: opts.model, type: 'video',
+                  provider: providerName, model: model, type: 'video',
                   prompt: opts.prompt, outputFile, createdAt: new Date().toISOString(),
                   durationMs: mediaResult.durationMs, jobId: result.jobId,
                 });
               }
               printResponse({
-                ok: true, type: 'video', provider: opts.provider, model: opts.model,
+                ok: true, type: 'video', provider: providerName, model: model,
                 outputFile, metadataFile, durationMs: mediaResult.durationMs, jobId: result.jobId,
               }, opts.json);
               return;
@@ -201,7 +201,7 @@ export function createVideoCommand(): Command {
 
           // Return job info without waiting
           const response: SuccessResponse = {
-            ok: true, type: 'video', provider: opts.provider, model: opts.model,
+            ok: true, type: 'video', provider: providerName, model: model,
             jobId: result.jobId, status: result.status, statusUrl: result.statusUrl,
           };
           printResponse(response, opts.json);
@@ -210,13 +210,13 @@ export function createVideoCommand(): Command {
           let metadataFile: string | undefined;
           if (opts.metadata) {
             metadataFile = writeMetadata(outputFile, {
-              provider: opts.provider, model: opts.model, type: 'video',
+              provider: providerName, model: model, type: 'video',
               prompt: opts.prompt, outputFile: result.outputFile,
               createdAt: new Date().toISOString(), durationMs: result.durationMs,
             });
           }
           printResponse({
-            ok: true, type: 'video', provider: opts.provider, model: opts.model,
+            ok: true, type: 'video', provider: providerName, model: model,
             outputFile: result.outputFile, metadataFile, durationMs: result.durationMs,
           }, opts.json);
         }

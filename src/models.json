@@ -1,6 +1,10 @@
 {
   "openai": {
     "models": [
+      "gpt-image-2.5-sunburst",
+      "gpt-image-2.5-flare",
+      "gpt-image-1.5",
+      "gpt-image-1-mini",
       "gpt-image-2",
       "gpt-image-1",
       "gpt-4o-mini-tts",
@@ -26,26 +30,48 @@
       "cedar"
     ],
     "capabilities": {
-      "image-generate": ["gpt-image-2", "gpt-image-1"],
-      "image-edit": ["gpt-image-2", "gpt-image-1"],
-      "voice-tts": ["gpt-4o-mini-tts", "tts-1", "tts-1-hd"],
-      "audio-transcribe": ["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"],
-      "audio-translate": ["whisper-1"]
+      "image-generate": [
+        "gpt-image-2.5-sunburst",
+        "gpt-image-2.5-flare",
+        "gpt-image-1.5",
+        "gpt-image-1-mini",
+        "gpt-image-2",
+        "gpt-image-1"
+      ],
+      "image-edit": [
+        "gpt-image-2.5-sunburst",
+        "gpt-image-2.5-flare",
+        "gpt-image-1.5",
+        "gpt-image-1-mini",
+        "gpt-image-2",
+        "gpt-image-1"
+      ],
+      "voice-tts": [
+        "gpt-4o-mini-tts",
+        "tts-1",
+        "tts-1-hd"
+      ],
+      "audio-transcribe": [
+        "whisper-1",
+        "gpt-4o-transcribe",
+        "gpt-4o-mini-transcribe"
+      ],
+      "audio-translate": [
+        "whisper-1"
+      ]
     }
   },
   "google": {
     "models": [
-      "imagen-4.0-generate-001",
-      "imagen-3.0-generate-002",
+      "gemini-3.8-flash-tts",
+      "gemini-nano-banana-2.1",
+      "gemini-3.1-flash-image",
+      "gemini-3.1-flash-lite-image",
+      "gemini-3-pro-image",
       "gemini-3.1-flash-tts-preview",
       "gemini-2.5-flash-preview-tts",
       "gemini-2.5-pro-preview-tts",
-      "veo-3.1-generate-preview",
-      "veo-3.1-fast-generate-preview",
-      "veo-3.1-lite-generate-preview",
-      "veo-3.0-generate-001",
-      "veo-3.0-fast-generate-001",
-      "veo-2.0-generate-001"
+      "gemini-omni-1.1-flash"
     ],
     "voiceIds": [
       "Zephyr",
@@ -80,15 +106,37 @@
       "Sulafat"
     ],
     "capabilities": {
-      "image-generate": ["imagen-4.0-generate-001", "imagen-3.0-generate-002"],
-      "video-generate": ["veo-3.1-generate-preview", "veo-3.1-fast-generate-preview", "veo-3.1-lite-generate-preview", "veo-3.0-generate-001", "veo-3.0-fast-generate-001", "veo-2.0-generate-001"],
-      "voice-tts": ["gemini-3.1-flash-tts-preview", "gemini-2.5-flash-preview-tts", "gemini-2.5-pro-preview-tts"]
+      "image-generate": [
+        "gemini-nano-banana-2.1",
+        "gemini-3.1-flash-image",
+        "gemini-3.1-flash-lite-image",
+        "gemini-3-pro-image"
+      ],
+      "video-generate": [
+        "gemini-omni-1.1-flash"
+      ],
+      "voice-tts": [
+        "gemini-3.8-flash-tts",
+        "gemini-3.1-flash-tts-preview",
+        "gemini-2.5-flash-preview-tts",
+        "gemini-2.5-pro-preview-tts"
+      ],
+      "image-edit": [
+        "gemini-nano-banana-2.1",
+        "gemini-3.1-flash-image",
+        "gemini-3.1-flash-lite-image",
+        "gemini-3-pro-image"
+      ],
+      "video-image-to-video": [
+        "gemini-omni-1.1-flash"
+      ]
     }
   },
   "azure": {
     "models": [
+      "gpt-image-2.5-flare",
+      "gpt-image-2.5-sunburst",
       "gpt-image-2",
-      "gpt-image-1.5",
       "gpt-4o-mini-tts",
       "whisper-1",
       "gpt-4o-transcribe",
@@ -110,14 +158,30 @@
       "cedar"
     ],
     "capabilities": {
-      "image-generate": ["gpt-image-2", "gpt-image-1.5"],
-      "voice-tts": ["gpt-4o-mini-tts"],
-      "audio-transcribe": ["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"],
-      "audio-translate": ["whisper-1"]
+      "image-generate": [
+        "gpt-image-2.5-flare",
+        "gpt-image-2.5-sunburst",
+        "gpt-image-2"
+      ],
+      "voice-tts": [
+        "gpt-4o-mini-tts"
+      ],
+      "audio-transcribe": [
+        "whisper-1",
+        "gpt-4o-transcribe",
+        "gpt-4o-mini-transcribe"
+      ],
+      "audio-translate": [
+        "whisper-1"
+      ]
     }
   },
   "elevenlabs": {
     "models": [
+      "eleven_v4",
+      "eleven_v4_turbo",
+      "eleven_flash_v2_5",
+      "eleven_flash_v2",
       "eleven_v3",
       "eleven_multilingual_v2",
       "eleven_turbo_v2_5",
@@ -148,14 +212,28 @@
       "pqHfZKP75CvOlQylNhV4:Bill (premade)"
     ],
     "capabilities": {
-      "voice-tts": ["eleven_v3", "eleven_multilingual_v2", "eleven_turbo_v2_5", "eleven_turbo_v2", "eleven_monolingual_v1"],
-      "voice-clone": ["eleven_v3", "eleven_multilingual_v2"],
+      "voice-tts": [
+        "eleven_v4",
+        "eleven_v4_turbo",
+        "eleven_flash_v2_5",
+        "eleven_flash_v2",
+        "eleven_v3",
+        "eleven_multilingual_v2",
+        "eleven_turbo_v2_5",
+        "eleven_turbo_v2",
+        "eleven_monolingual_v1"
+      ],
+      "voice-clone": [
+        "eleven_v3",
+        "eleven_multilingual_v2"
+      ],
       "voice-isolate": []
     }
   },
   "deepgram": {
     "models": [
       "nova-3",
+      "nova-3-pharma",
       "nova-3-medical",
       "nova-2",
       "nova",
@@ -186,9 +264,23 @@
       "aura-2-izanami-ja"
     ],
     "capabilities": {
-      "audio-transcribe": ["nova-3", "nova-3-medical", "nova-2", "nova", "enhanced", "base"],
-      "audio-translate": ["nova-3", "nova-2"],
-      "voice-tts": ["aura-2", "aura"]
+      "audio-transcribe": [
+        "nova-3",
+        "nova-3-pharma",
+        "nova-3-medical",
+        "nova-2",
+        "nova",
+        "enhanced",
+        "base"
+      ],
+      "audio-translate": [
+        "nova-3",
+        "nova-2"
+      ],
+      "voice-tts": [
+        "aura-2",
+        "aura"
+      ]
     }
   },
   "fal": {
@@ -198,7 +290,6 @@
       "fal-ai/flux-pro/v1.1",
       "fal-ai/flux/dev",
       "fal-ai/flux-realism",
-      "fal-ai/flux-kontext/pro",
       "fal-ai/seedream-4.5",
       "fal-ai/bytedance/seedream/v5/lite/text-to-image",
       "fal-ai/bytedance/seedream/v4/text-to-image",
@@ -212,30 +303,51 @@
       "fal-ai/minimax/video-01"
     ],
     "capabilities": {
-      "image-generate": ["fal-ai/flux-2/pro", "fal-ai/flux-2/max", "fal-ai/flux-pro/v1.1", "fal-ai/flux/dev", "fal-ai/flux-realism", "fal-ai/seedream-4.5", "fal-ai/bytedance/seedream/v5/lite/text-to-image", "fal-ai/bytedance/seedream/v4/text-to-image", "fal-ai/bytedance/dreamina/v3.1/text-to-image"],
-      "image-edit": ["fal-ai/flux-kontext/pro", "fal-ai/flux-2/pro"],
-      "video-generate": ["fal-ai/veo-3.1", "bytedance/seedance-2.0/text-to-video", "bytedance/seedance-2.0/fast/text-to-video", "bytedance/seedance-2.0/mini/text-to-video", "fal-ai/bytedance/seedance/v1.5/pro/text-to-video", "fal-ai/kling-video/v3.0/pro", "fal-ai/minimax/video-01"],
-      "video-image-to-video": ["fal-ai/bytedance/seedance/v1.5/pro/image-to-video", "fal-ai/kling-video/v3.0/pro"]
+      "image-generate": [
+        "fal-ai/flux-2/pro",
+        "fal-ai/flux-2/max",
+        "fal-ai/flux-pro/v1.1",
+        "fal-ai/flux/dev",
+        "fal-ai/flux-realism",
+        "fal-ai/seedream-4.5",
+        "fal-ai/bytedance/seedream/v5/lite/text-to-image",
+        "fal-ai/bytedance/seedream/v4/text-to-image",
+        "fal-ai/bytedance/dreamina/v3.1/text-to-image"
+      ],
+      "video-generate": [
+        "fal-ai/veo-3.1",
+        "bytedance/seedance-2.0/text-to-video",
+        "bytedance/seedance-2.0/fast/text-to-video",
+        "bytedance/seedance-2.0/mini/text-to-video",
+        "fal-ai/bytedance/seedance/v1.5/pro/text-to-video",
+        "fal-ai/kling-video/v3.0/pro",
+        "fal-ai/minimax/video-01"
+      ]
     }
   },
   "luma": {
     "models": [
-      "ray3.2",
-      "ray3.14",
+      "ray-3.2",
       "ray-2",
-      "ray-1"
+      "ray-flash-2"
     ],
     "capabilities": {
-      "video-generate": ["ray3.2", "ray3.14", "ray-2", "ray-1"],
-      "video-image-to-video": ["ray3.2", "ray3.14", "ray-2"],
-      "video-extend": ["ray3.2", "ray3.14"]
+      "video-generate": [
+        "ray-3.2",
+        "ray-2",
+        "ray-flash-2"
+      ],
+      "video-image-to-video": [
+        "ray-3.2",
+        "ray-2",
+        "ray-flash-2"
+      ]
     }
   },
   "replicate": {
     "models": [
       "black-forest-labs/flux-2-pro",
       "black-forest-labs/flux-2-max",
-      "black-forest-labs/flux-kontext-pro",
       "black-forest-labs/flux-1.1-pro",
       "black-forest-labs/flux-schnell",
       "runwayml/gen-4.5",
@@ -243,9 +355,17 @@
       "alibaba/happy-horse-1.0"
     ],
     "capabilities": {
-      "image-generate": ["black-forest-labs/flux-2-pro", "black-forest-labs/flux-2-max", "black-forest-labs/flux-1.1-pro", "black-forest-labs/flux-schnell"],
-      "image-edit": ["black-forest-labs/flux-kontext-pro", "black-forest-labs/flux-2-pro"],
-      "video-generate": ["runwayml/gen-4.5", "minimax/video-01", "alibaba/happy-horse-1.0"]
+      "image-generate": [
+        "black-forest-labs/flux-2-pro",
+        "black-forest-labs/flux-2-max",
+        "black-forest-labs/flux-1.1-pro",
+        "black-forest-labs/flux-schnell"
+      ],
+      "video-generate": [
+        "runwayml/gen-4.5",
+        "minimax/video-01",
+        "alibaba/happy-horse-1.0"
+      ]
     }
   },
   "stability": {
@@ -257,7 +377,13 @@
       "stable-image-core"
     ],
     "capabilities": {
-      "image-generate": ["sd3.5-large", "sd3.5-large-turbo", "sd3.5-medium", "stable-image-ultra", "stable-image-core"]
+      "image-generate": [
+        "sd3.5-large",
+        "sd3.5-large-turbo",
+        "sd3.5-medium",
+        "stable-image-ultra",
+        "stable-image-core"
+      ]
     }
   },
   "runway": {
@@ -282,13 +408,60 @@
       "gpt_image_2"
     ],
     "capabilities": {
-      "image-generate": ["gen4_image", "gen4_image_turbo", "gemini_image3_pro", "gemini_image3.1_flash", "gemini_2.5_flash", "gpt_image_2"],
-      "video-generate": ["gen4.5", "veo3", "veo3.1", "seedance2", "seedance2_fast", "seedance2_mini", "happyhorse_1_0", "gemini_omni_flash"],
-      "video-image-to-video": ["gen4.5", "gen4_turbo", "gen3a_turbo", "veo3", "veo3.1", "seedance2", "seedance2_fast", "seedance2_mini", "happyhorse_1_0", "gemini_omni_flash"]
+      "image-generate": [
+        "gen4_image",
+        "gen4_image_turbo",
+        "gemini_image3_pro",
+        "gemini_image3.1_flash",
+        "gemini_2.5_flash",
+        "gpt_image_2"
+      ],
+      "video-generate": [
+        "gen4.5",
+        "veo3",
+        "veo3.1",
+        "seedance2",
+        "seedance2_fast",
+        "seedance2_mini",
+        "happyhorse_1_0",
+        "gemini_omni_flash"
+      ],
+      "video-image-to-video": [
+        "gen4.5",
+        "gen4_turbo",
+        "gen3a_turbo",
+        "veo3",
+        "veo3.1",
+        "seedance2",
+        "seedance2_fast",
+        "seedance2_mini",
+        "happyhorse_1_0",
+        "gemini_omni_flash"
+      ]
     }
   },
   "openrouter": {
     "models": [
+      "qwen/qwen-image-2.1-turbo",
+      "qwen/qwen-image-2.1-pro",
+      "black-forest-labs/flux-3-image-klein",
+      "google/gemini-nano-banana-2.1",
+      "tencent/hy-image-v3.5-preview",
+      "bytedance-seed/seedream-5-0-flash",
+      "black-forest-labs/flux-3-image",
+      "recraft/recraft-v4.1-flash",
+      "openai/gpt-image-2.5-sunburst",
+      "openai/gpt-image-2.5-flare",
+      "microsoft/mai-image-2.6",
+      "microsoft/mai-image-2.6-flash",
+      "meta/muse-image",
+      "bytedance-seed/seedream-5-0-lite",
+      "bytedance-seed/seedream-5-0-pro",
+      "x-ai/grok-imagine-image-2.0",
+      "qwen/qwen-image-3",
+      "qwen/qwen-image-3-pro",
+      "recraft/recraft-v4.1",
+      "recraft/recraft-v4.1-pro",
       "openai/gpt-image-2",
       "openai/gpt-image-1",
       "microsoft/mai-image-2.5",
@@ -302,21 +475,54 @@
       "bytedance-seed/seedream-4.5",
       "black-forest-labs/flux.2-klein-4b",
       "recraft/recraft-v3",
-      "alibaba/happy-horse-1.1",
-      "alibaba/happy-horse-1.0",
+      "x-ai/grok-imagine-video-1.5-lite",
+      "heygen/heygen-video-1",
+      "minimax/hailuo-3-max",
+      "alibaba/wan-3.0-prime",
+      "alibaba/wan-3.0",
+      "bytedance/seedance-2.0-mini",
+      "bytedance/seedance-2.5",
+      "black-forest-labs/flux-3-video",
+      "minimax/hailuo-3",
+      "runway/gen-4.5",
+      "x-ai/grok-imagine-video-1.5",
+      "alibaba/happyhorse-1.1",
+      "alibaba/happyhorse-1.0",
       "x-ai/grok-imagine-video",
-      "kuaishou/kling-video-3.0-pro",
-      "kuaishou/kling-video-3.0-standard",
-      "google/veo-3.1",
+      "kwaivgi/kling-v3.0-pro",
+      "kwaivgi/kling-v3.0-std",
       "google/veo-3.1-fast",
       "google/veo-3.1-lite",
       "minimax/hailuo-2.3",
       "alibaba/wan-2.7",
-      "bytedance-seed/seedance-2.0-fast",
-      "bytedance-seed/seedance-2.0"
+      "bytedance/seedance-2.0",
+      "bytedance/seedance-2.0-fast",
+      "alibaba/wan-2.6",
+      "bytedance/seedance-1-5-pro",
+      "google/veo-3.1"
     ],
     "capabilities": {
       "image-generate": [
+        "qwen/qwen-image-2.1-turbo",
+        "qwen/qwen-image-2.1-pro",
+        "black-forest-labs/flux-3-image-klein",
+        "google/gemini-nano-banana-2.1",
+        "tencent/hy-image-v3.5-preview",
+        "bytedance-seed/seedream-5-0-flash",
+        "black-forest-labs/flux-3-image",
+        "recraft/recraft-v4.1-flash",
+        "openai/gpt-image-2.5-sunburst",
+        "openai/gpt-image-2.5-flare",
+        "microsoft/mai-image-2.6",
+        "microsoft/mai-image-2.6-flash",
+        "meta/muse-image",
+        "bytedance-seed/seedream-5-0-lite",
+        "bytedance-seed/seedream-5-0-pro",
+        "x-ai/grok-imagine-image-2.0",
+        "qwen/qwen-image-3",
+        "qwen/qwen-image-3-pro",
+        "recraft/recraft-v4.1",
+        "recraft/recraft-v4.1-pro",
         "openai/gpt-image-2",
         "openai/gpt-image-1",
         "microsoft/mai-image-2.5",
@@ -332,18 +538,31 @@
         "recraft/recraft-v3"
       ],
       "video-generate": [
-        "alibaba/happy-horse-1.1",
-        "alibaba/happy-horse-1.0",
+        "x-ai/grok-imagine-video-1.5-lite",
+        "heygen/heygen-video-1",
+        "minimax/hailuo-3-max",
+        "alibaba/wan-3.0-prime",
+        "alibaba/wan-3.0",
+        "bytedance/seedance-2.0-mini",
+        "bytedance/seedance-2.5",
+        "black-forest-labs/flux-3-video",
+        "minimax/hailuo-3",
+        "runway/gen-4.5",
+        "x-ai/grok-imagine-video-1.5",
+        "alibaba/happyhorse-1.1",
+        "alibaba/happyhorse-1.0",
         "x-ai/grok-imagine-video",
-        "kuaishou/kling-video-3.0-pro",
-        "kuaishou/kling-video-3.0-standard",
-        "google/veo-3.1",
+        "kwaivgi/kling-v3.0-pro",
+        "kwaivgi/kling-v3.0-std",
         "google/veo-3.1-fast",
         "google/veo-3.1-lite",
         "minimax/hailuo-2.3",
         "alibaba/wan-2.7",
-        "bytedance-seed/seedance-2.0-fast",
-        "bytedance-seed/seedance-2.0"
+        "bytedance/seedance-2.0",
+        "bytedance/seedance-2.0-fast",
+        "alibaba/wan-2.6",
+        "bytedance/seedance-1-5-pro",
+        "google/veo-3.1"
       ]
     }
   },
@@ -370,9 +589,23 @@
       "Chinese_storyteller_male"
     ],
     "capabilities": {
-      "video-generate": ["MiniMax-Hailuo-2.3", "MiniMax-Hailuo-02", "T2V-01-Director", "T2V-01"],
-      "video-image-to-video": ["MiniMax-Hailuo-2.3", "MiniMax-Hailuo-2.3Fast", "MiniMax-Hailuo-02"],
-      "voice-tts": ["speech-2.8-hd", "speech-2.8-turbo", "speech-2.6-hd", "speech-2.6-turbo"]
+      "video-generate": [
+        "MiniMax-Hailuo-2.3",
+        "MiniMax-Hailuo-02",
+        "T2V-01-Director",
+        "T2V-01"
+      ],
+      "video-image-to-video": [
+        "MiniMax-Hailuo-2.3",
+        "MiniMax-Hailuo-2.3Fast",
+        "MiniMax-Hailuo-02"
+      ],
+      "voice-tts": [
+        "speech-2.8-hd",
+        "speech-2.8-turbo",
+        "speech-2.6-hd",
+        "speech-2.6-turbo"
+      ]
     }
   },
   "edge-tts": {
