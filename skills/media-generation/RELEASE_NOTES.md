@@ -1,5 +1,34 @@
 # Release Notes
 
+## v1.6.0 (2026-10-23)
+
+### Models and capabilities
+
+- Add GPT Image 2.5 Flare and Sunburst for OpenAI and Azure. Azure image models are `gpt-image-2.5-flare`, `gpt-image-2.5-sunburst`, and `gpt-image-2`.
+- Add Google Nano Banana 2.1 image generation/editing, Gemini Omni 1.1 Flash video generation/image-to-video, and Gemini 3.8 Flash TTS.
+- Add Eleven v4/v4 Turbo, Luma Ray 3.2, and Deepgram Nova-3 Pharma.
+- Refresh OpenRouter models with FLUX 3, Qwen Image, Seedream 5, Hailuo 3, Seedance 2.5, Wan 3, and other verified catalog entries.
+
+### API fixes
+
+- Parse Google Interactions media from REST output steps and preserve WAV audio; wrap legacy PCM as WAV.
+- Route Stability SD3.5/Core/Ultra through the multipart Stable Image API.
+- Read MiniMax TTS audio from `data.audio` and preserve fal queue status/result URLs.
+- Use required Runway pixel ratios and durations, handle terminal OpenRouter video states, and pass configured video models correctly.
+- Route Ray 3.2 through Luma Agents; support `LUMA_AGENTS_API_KEY` while retaining legacy job routing.
+
+### Migration notes
+
+- Imagen and direct Gemini API Veo 3.1 previews are retired. Use Nano Banana and `gemini-omni-1.1-flash`; Omni returns a completed video synchronously.
+- GPT Image models reject the legacy `style` parameter; describe style in the prompt.
+- Remove advertised fal/Replicate edit and image-to-video capabilities without adapter implementations.
+- Document capability-specific model IDs and provider documentation for all 13 providers in the README.
+
+### Validation
+
+- 50 tests covering API contracts, model catalog consistency, and command model resolution.
+- TypeScript checks, production build, and CLI dry runs pass. No paid generation requests were used.
+
 ## v1.5.0 (2026-07-09)
 
 ### New Capabilities

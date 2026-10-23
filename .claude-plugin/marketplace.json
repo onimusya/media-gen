@@ -1,6 +1,6 @@
 {
   "name": "media-generation",
-  "version": "1.3.0",
+  "version": "1.6.0",
   "description": "Generate images, videos, speech, and transcriptions through 13 AI providers (OpenAI, Google, Azure, ElevenLabs, Deepgram, Fal.ai, Luma, Replicate, Stability, Runway, OpenRouter, MiniMax, Edge TTS). Supports 100+ models with structured JSON output for agent integration.",
   "author": {
     "name": "Francis Hor",
