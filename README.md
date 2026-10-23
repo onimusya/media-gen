@@ -30,14 +30,30 @@ This downloads the `SKILL.md` and the pre-built CLI into your project's skills d
 ### As a global CLI
 
 ```bash
-npm install -g media-gen-cli
+npm install -g media-gen-cli@latest
+media-gen --help
 ```
 
 ### As a local project dependency
 
 ```bash
-npm install media-gen-cli
+npm install media-gen-cli@latest
 npx media-gen --help
+```
+
+### Run once with npx
+
+```bash
+npx media-gen-cli@latest --help
+```
+
+The npm package is named `media-gen-cli`, while the executable it installs is
+named `media-gen`. Without a local or global installation, `npx media-gen`
+searches the npm registry for a package named `media-gen` and returns an E404.
+To name both parts explicitly, use:
+
+```bash
+npx --package=media-gen-cli@latest media-gen --help
 ```
 
 ## Configuration
@@ -504,6 +520,7 @@ media-gen job download --provider openrouter --job-id "YOUR_JOB_ID" --output ./v
 | `CAPABILITY_NOT_SUPPORTED` | Use a different provider. Run `providers list --capability <cap>` |
 | `FILE_ALREADY_EXISTS` | Add `--overwrite` or use a different output path |
 | `EXTERNAL_OUTPUT_BLOCKED` | Add `--allow-external-output` for paths outside project |
+| npm `E404` for `media-gen` | The package is `media-gen-cli`. Run `npx media-gen-cli@latest --help`, or install it before running `npx media-gen` |
 
 Add `--debug` to any command for verbose logging.
 
