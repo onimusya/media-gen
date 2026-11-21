@@ -1,6 +1,6 @@
 ---
 name: media-generation
-description: Generate and edit images, create videos, synthesize speech, transcribe and translate audio using multiple AI providers (OpenAI, Google, ElevenLabs, Deepgram, Fal, Luma, Replicate, Stability, Runway, OpenRouter, Edge TTS). Use when the user asks to create media assets, generate pictures, make videos, produce voiceovers, transcribe recordings, or work with any visual/audio content.
+description: Generate and edit images, create videos and music, synthesize speech, transcribe and translate audio using multiple AI providers (OpenAI, Google, ElevenLabs, Deepgram, Fal, Luma, Replicate, Stability, Runway, OpenRouter, Edge TTS). Use when the user asks to create media assets, generate pictures, make videos or music, produce voiceovers, transcribe recordings, or work with any visual/audio content.
 compatibility: Requires Node.js 18+ and at least one provider API key configured in .env (Edge TTS is free, no key needed)
 metadata:
   author: Francis Hor <francishoe@gmail.com>
@@ -25,6 +25,7 @@ node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs <command> [options] --json
 | `video generate` | Generate video from text (async) |
 | `video image-to-video` | Animate an image into video |
 | `video extend` | Extend an existing video |
+| `music generate` | Generate an MP3 from a text prompt |
 | `voice tts` | Text to speech synthesis |
 | `voice clone` | Clone a voice from audio samples |
 | `voice isolate` | Isolate voice from background audio |
@@ -53,9 +54,11 @@ MEDIA_GEN_VOICE_PROVIDER=edge-tts
 MEDIA_GEN_VOICE_MODEL=
 MEDIA_GEN_VOICE_ID=en-US-EmmaMultilingualNeural
 MEDIA_GEN_VIDEO_PROVIDER=google
-MEDIA_GEN_VIDEO_MODEL=gemini-omni-1.1-flash
+MEDIA_GEN_VIDEO_MODEL=gemini-omni-1.2-flash
 MEDIA_GEN_AUDIO_PROVIDER=deepgram
 MEDIA_GEN_AUDIO_MODEL=nova-3
+MEDIA_GEN_MUSIC_PROVIDER=google
+MEDIA_GEN_MUSIC_MODEL=
 MEDIA_GEN_LOG_LEVEL=error
 ```
 
@@ -75,13 +78,23 @@ node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs image generate \
 ```bash
 node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs video generate \
   --provider google \
-  --model gemini-omni-1.1-flash \
+  --model gemini-omni-1.2-flash \
   --prompt "A cinematic card pack opening" \
   --duration 8 \
   --output ./outputs/video.mp4 \
   --wait \
   --json
 ```
+
+### Music generation
+
+```bash
+node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs music generate --provider google --prompt "Gentle orchestral piano" --instrumental --output ./outputs/lyria.mp3 --json
+node ${CLAUDE_SKILL_DIR}/scripts/media-gen.mjs music generate --provider elevenlabs --prompt "Bright acoustic bossa nova" --duration 15 --instrumental --output ./outputs/eleven.mp3 --json
+```
+
+Google defaults to `lyria-3.5` and treats length and instrumental options as prompt guidance.
+ElevenLabs defaults to `music_v2_5` and accepts 3 to 600 seconds.
 
 ### Text to speech (Edge TTS - free, no API key)
 
@@ -258,17 +271,17 @@ Error:
 
 ## Provider Capabilities
 
-| Provider | Image | Video | TTS | Transcribe | Translate | Clone | Isolate |
-|----------|-------|-------|-----|------------|-----------|-------|---------|
-| openai | Yes | | Yes | Yes | Yes | | |
-| google | Yes | Yes | Yes | | | | |
-| azure | Yes | | Yes | Yes | Yes | | |
-| elevenlabs | | | Yes | | | Yes | Yes |
-| deepgram | | | Yes | Yes | Yes | | |
-| fal | Yes | Yes | | | | | |
-| luma | | Yes | | | | | |
-| replicate | Yes | Yes | | | | | |
-| stability | Yes | | | | | | |
-| runway | | Yes | | | | | |
-| openrouter | Yes | Yes | | | | | |
-| edge-tts | | | Yes (free) | | | | |
+| Provider | Image | Video | TTS | Transcribe | Translate | Clone | Isolate | Music |
+|----------|-------|-------|-----|------------|-----------|-------|---------|-------|
+| openai | Yes | | Yes | Yes | Yes | | | |
+| google | Yes | Yes | Yes | | | | | Yes |
+| azure | Yes | | Yes | Yes | Yes | | | |
+| elevenlabs | | | Yes | | | Yes | Yes | Yes |
+| deepgram | | | Yes | Yes | Yes | | | |
+| fal | Yes | Yes | | | | | | |
+| luma | | Yes | | | | | | |
+| replicate | Yes | Yes | | | | | | |
+| stability | Yes | | | | | | | |
+| runway | | Yes | | | | | | |
+| openrouter | Yes | Yes | | | | | | |
+| edge-tts | | | Yes (free) | | | | | |

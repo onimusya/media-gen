@@ -22,6 +22,7 @@ import { getMimeType } from '../../utils/mime.js';
 import { statSync } from 'node:fs';
 
 export class FalProvider implements FullProvider {
+  readonly defaultVideoModel = 'fal-ai/minimax-video-01';
   id = 'fal';
   name = 'Fal.ai';
   capabilities: ProviderCapability[] = ['image-generate', 'video-generate'];
@@ -97,7 +98,7 @@ export class FalProvider implements FullProvider {
 
   async generateVideo(input: VideoGenerationInput): Promise<AsyncMediaResult> {
     const log = getLogger();
-    const model = input.model || 'fal-ai/minimax-video-01';
+    const model = input.model || this.defaultVideoModel;
     log.debug({ model, prompt: input.prompt }, 'Fal video generation');
 
     const body: Record<string, unknown> = { prompt: input.prompt };

@@ -15,7 +15,7 @@ export function createProvidersCommand(): Command {
     .command('list')
     .description('List all supported providers with their capabilities and models')
     .option('--json', 'Output as JSON', false)
-    .option('--capability <cap>', 'Filter by capability (e.g., image-generate, video-generate, voice-tts, audio-transcribe)')
+    .option('--capability <cap>', 'Filter by capability (e.g., image-generate, video-generate, music-generate, voice-tts, audio-transcribe)')
     .option('--configured', 'Only show configured providers', false)
     .action((opts) => {
       const modelsConfig = loadModelsConfig();
@@ -63,18 +63,12 @@ export function createProvidersCommand(): Command {
     .option('--json', 'Output as JSON', false)
     .action((opts) => {
       const modelsConfig = loadModelsConfig();
+      const includeVoiceIds = !opts.capability || opts.capability.startsWith('voice-');
 
       if (opts.provider) {
         const entry = modelsConfig[opts.provider];
-        let models: string[];
-
-        if (opts.capability && entry?.capabilities) {
-          models = entry.capabilities[opts.capability] || [];
-        } else {
-          models = entry?.models || [];
-        }
-
-        const voiceIds = entry?.voiceIds || [];
+        const models = (opts.capability ? entry?.capabilities?.[opts.capability] : entry?.models) || [];
+        const voiceIds = (includeVoiceIds && entry?.voiceIds) || [];
 
         if (opts.json) {
           const result: Record<string, unknown> = { ok: true, provider: opts.provider, models };
@@ -102,15 +96,8 @@ export function createProvidersCommand(): Command {
         const allData: Record<string, { models: string[]; voiceIds: string[]; configured: boolean }> = {};
         for (const p of listProviders()) {
           const entry = modelsConfig[p.id];
-          let models: string[];
-
-          if (opts.capability && entry?.capabilities) {
-            models = entry.capabilities[opts.capability] || [];
-          } else {
-            models = entry?.models || [];
-          }
-
-          const voiceIds = entry?.voiceIds || [];
+          const models = (opts.capability ? entry?.capabilities?.[opts.capability] : entry?.models) || [];
+          const voiceIds = (includeVoiceIds && entry?.voiceIds) || [];
 
           if (models.length > 0 || voiceIds.length > 0 || !opts.capability) {
             allData[p.id] = { models, voiceIds, configured: isProviderConfigured(p.id) };

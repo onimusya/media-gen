@@ -61,23 +61,19 @@ media-gen-cli/
 - TTS voices: alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer, verse, marin, cedar (13 total)
 - Recommended TTS voices: `marin`, `cedar` (best quality)
 - `tts-1`/`tts-1-hd` support 9 voices (subset); `gpt-4o-mini-tts` supports all 13
-- Models: `gpt-image-2` (latest, April 2026), `gpt-image-1`, `gpt-4o-mini-tts`, `whisper-1`
-- DALL-E 3 was retired March 2026
+- Image models include `gpt-image-2.6-flare` and `gpt-image-2.6-sunburst`.
+- `gpt-image-1` was retired October 23, 2026.
 
 ### Google (Gemini API)
 - Base URL: `https://generativelanguage.googleapis.com/v1beta`
-- Auth: `x-goog-api-key` header (NOT `?key=` query param)
-- Image: `/models/{model}:predict`
-- Video: `/models/{model}:predictLongRunning` (returns operation name)
+- Auth uses the `x-goog-api-key` header.
+- Nano Banana image generation and editing use `POST /interactions`.
+- Omni video defaults to `gemini-omni-1.2-flash` on `POST /interactions`. For `--duration`, send a whole number from 3 to 15 as a string such as `"8s"` in `response_format.duration`.
 - TTS: `POST /interactions` with `response_format: {type: "audio"}` and `speech_config`
-- TTS Models: `gemini-3.1-flash-tts-preview`, `gemini-2.5-flash-preview-tts`, `gemini-2.5-pro-preview-tts`
+- TTS defaults to `gemini-3.8-flash-tts`.
 - TTS Voices: Kore, Puck, Zephyr, Charon, Fenrir, Aoede, etc. (30 voices)
-- TTS Output: base64 PCM 24kHz/16-bit mono, wrapped in WAV headers
-- Job status: `GET ${BASE_URL}/${operation_name}` with API key header
-- Video download: response contains `generateVideoResponse.generatedSamples[0].video.uri`
-- Download requires `x-goog-api-key` header and redirect following
-- Model names: `veo-3.1-generate-preview`, `veo-3.1-fast-generate-preview`, `imagen-4.0-generate-001`
-- Important: Model names in the API are NOT the marketing names (e.g., "Veo 3.1" → `veo-3.1-generate-preview`)
+- Media output is read from `model_output` steps. Legacy PCM audio is wrapped in a WAV container.
+- Historical Veo jobs still use `GET ${BASE_URL}/${operation_name}`. The response contains the video URI at `generateVideoResponse.generatedSamples[0].video.uri`.
 
 ### OpenRouter
 - Unified gateway to multiple image and video providers
@@ -152,8 +148,8 @@ media-gen-cli/
 - **esbuild** bundles `src/index.ts` → `dist/media-gen.mjs`
 - After build, copies to `skills/media-generation/scripts/media-gen.mjs`
 - Format: ESM with CJS shim (`createRequire`)
-- Platform: Node 18+
-- Sourcemaps: enabled
+- Runtime target is Node.js 18+. Use Node.js 24 LTS for local development and builds.
+- The standalone build omits source maps.
 
 ## Testing
 
@@ -169,8 +165,8 @@ media-gen-cli/
 - `<project>/.env` loads second with `override: true` (always wins)
 - If you set `OPENROUTER_API_KEY=` (empty) in project `.env`, it wipes the key. Don't list unconfigured providers as empty entries.
 
-### Google Veo model names
-The API model name is `veo-3.1-generate-preview` — NOT `veo-3.1`. The marketing names differ from API identifiers.
+### Google video model migration
+Use `gemini-omni-1.2-flash` for new video requests. Google routes requests for `gemini-omni-1.1-flash` to 1.2 starting December 3, 2026.
 
 ### Google auth method
 Use `x-goog-api-key` header, not `?key=` query parameter. The query param method is deprecated/unreliable for some endpoints.

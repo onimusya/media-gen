@@ -1,6 +1,6 @@
 /**
  * ElevenLabs provider adapter for media-gen-cli.
- * Supports: TTS, voice cloning, voice isolation.
+ * Supports: TTS, voice cloning, voice isolation, and music generation.
  */
 
 import type {
@@ -11,22 +11,26 @@ import type {
   VoiceCloneInput,
   VoiceCloneResult,
   AudioIsolationInput,
+  MusicGenerationInput,
   MediaResult,
 } from '../../core/provider.js';
 import { MediaGenError } from '../../core/errors.js';
 import { getProviderConfig } from '../../core/config.js';
 import { getLogger } from '../../core/logger.js';
+import { saveMusic, validateMusicInput } from '../../core/music.js';
 import { ensureParentDir } from '../../utils/fs.js';
 import { getMimeType } from '../../utils/mime.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 
 export class ElevenLabsProvider implements FullProvider {
+  readonly defaultMusicModel = 'music_v2_5';
   id = 'elevenlabs';
   name = 'ElevenLabs';
   capabilities: ProviderCapability[] = [
     'voice-tts',
     'voice-clone',
     'voice-isolate',
+    'music-generate',
   ];
 
   private getApiKey(): string {
@@ -49,6 +53,35 @@ export class ElevenLabsProvider implements FullProvider {
     const errors: string[] = [];
     if (!config?.apiKey) errors.push('ELEVENLABS_API_KEY is not set');
     return { valid: errors.length === 0, errors, warnings: [] };
+  }
+
+  async generateMusic(input: MusicGenerationInput): Promise<MediaResult> {
+    validateMusicInput(input, this.id);
+    const startTime = Date.now();
+    const response = await fetch('https://api.elevenlabs.io/v1/music', {
+      method: 'POST',
+      headers: { ...this.getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: input.prompt,
+        model_id: input.model || this.defaultMusicModel,
+        ...(input.duration !== undefined && { music_length_ms: Math.round(input.duration * 1000) }),
+        ...(input.instrumental && { force_instrumental: true }),
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({})) as {
+        detail?: { status?: string; message?: string } | Array<{ msg?: string }>;
+      } | null;
+      const detail = error?.detail;
+      const message = Array.isArray(detail) ? detail.map(issue => issue.msg).filter(Boolean).join('; ') : detail?.message;
+      const code = response.status === 429 ? 'RATE_LIMITED'
+        : !Array.isArray(detail) && detail?.status === 'bad_prompt' ? 'CONTENT_POLICY_VIOLATION'
+        : 'API_ERROR';
+      throw new MediaGenError(code, message || `HTTP ${response.status}`, { provider: this.id });
+    }
+
+    return saveMusic(input, Buffer.from(await response.arrayBuffer()), this.id, startTime);
   }
 
   async textToSpeech(input: TextToSpeechInput): Promise<MediaResult> {

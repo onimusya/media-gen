@@ -50,22 +50,18 @@ export function createVideoCommand(): Command {
           }
 
           const providerName = resolveProvider(opts.provider, 'video');
-          const model = resolveModel(opts.model, 'video');
           if (!providerName) {
             throw new MediaGenError('INVALID_INPUT', 'No provider specified. Use --provider or set MEDIA_GEN_DEFAULT_PROVIDER / MEDIA_GEN_VIDEO_PROVIDER in .env');
           }
-          if (!model) {
-            throw new MediaGenError('INVALID_INPUT', 'No model specified. Use --model or set MEDIA_GEN_VIDEO_MODEL in .env');
+          const provider = getProvider(providerName);
+          if (!provider.generateVideo) {
+            throw new MediaGenError('CAPABILITY_NOT_SUPPORTED', `Provider "${providerName}" does not support video generation`, { provider: providerName });
           }
+          const model = resolveModel(opts.model, 'video') || provider.defaultVideoModel;
 
           if (opts.dryRun) {
             printResponse({ ok: true, type: 'batch-video', provider: providerName, model, items: items.length, dryRun: true }, opts.json);
             return;
-          }
-
-          const provider = getProvider(providerName);
-          if (!provider.generateVideo) {
-            throw new MediaGenError('CAPABILITY_NOT_SUPPORTED', `Provider "${providerName}" does not support video generation`, { provider: providerName });
           }
 
           const results = await runBatch(items, async (item, index) => {
@@ -73,10 +69,12 @@ export function createVideoCommand(): Command {
               item.output || `video-batch-${index + 1}-${Date.now()}.mp4`,
               { outputDir: opts.outputDir || './outputs', allowExternalOutput: opts.allowExternalOutput },
             );
+            checkOverwrite(outputFile, opts.overwrite);
+            ensureOutputDir(outputFile);
 
             const result = await provider.generateVideo!({
               prompt: item.prompt,
-              model: item.model || model,
+              model: item.model || model || '',
               duration: opts.duration ? parseFloat(opts.duration) : undefined,
               aspectRatio: opts.aspectRatio,
               resolution: opts.resolution,
@@ -89,6 +87,7 @@ export function createVideoCommand(): Command {
                 wait: true, pollInterval: parseInt(opts.pollInterval), timeout: parseInt(opts.timeout),
               });
               if (status.status === 'completed') {
+                checkOverwrite(outputFile, opts.overwrite);
                 const media = await provider.downloadJob!(result.jobId, outputFile);
                 return { outputFile: media.outputFile };
               }
@@ -130,14 +129,17 @@ export function createVideoCommand(): Command {
         }
 
         const providerName = resolveProvider(opts.provider, 'video');
-        const model = resolveModel(opts.model, 'video');
-
         if (!providerName) {
           throw new MediaGenError('INVALID_INPUT', 'No provider specified. Use --provider or set MEDIA_GEN_DEFAULT_PROVIDER / MEDIA_GEN_VIDEO_PROVIDER in .env');
         }
-        if (!model) {
-          throw new MediaGenError('INVALID_INPUT', 'No model specified. Use --model or set MEDIA_GEN_DEFAULT_MODEL / MEDIA_GEN_VIDEO_MODEL in .env');
+        const provider = getProvider(providerName);
+        if (!provider.generateVideo) {
+          throw new MediaGenError('CAPABILITY_NOT_SUPPORTED', `Provider "${providerName}" does not support video generation`, {
+            provider: providerName,
+            suggestion: 'Try: google, luma, runway, fal, replicate',
+          });
         }
+        const model = resolveModel(opts.model, 'video') || provider.defaultVideoModel;
 
         const outputFile = resolveOutputPath(
           opts.output ? opts.output.split(/[/\\]/).pop()! : `video-${Date.now()}.mp4`,
@@ -154,17 +156,9 @@ export function createVideoCommand(): Command {
         checkOverwrite(outputFile, opts.overwrite);
         ensureOutputDir(outputFile);
 
-        const provider = getProvider(providerName);
-        if (!provider.generateVideo) {
-          throw new MediaGenError('CAPABILITY_NOT_SUPPORTED', `Provider "${opts.provider}" does not support video generation`, {
-            provider: opts.provider,
-            suggestion: 'Try: google, luma, runway, fal, replicate',
-          });
-        }
-
         const result = await provider.generateVideo({
           prompt: opts.prompt,
-          model: model,
+          model: model || '',
           duration: opts.duration ? parseFloat(opts.duration) : undefined,
           aspectRatio: opts.aspectRatio,
           resolution: opts.resolution,
@@ -182,6 +176,7 @@ export function createVideoCommand(): Command {
             );
 
             if (status.status === 'completed') {
+              checkOverwrite(outputFile, opts.overwrite);
               const mediaResult = await provider.downloadJob!(result.jobId, outputFile);
               let metadataFile: string | undefined;
               if (opts.metadata) {
@@ -233,7 +228,7 @@ export function createVideoCommand(): Command {
     .description('Generate a video from an image')
     .requiredOption('--provider <provider>', 'Provider to use')
     .requiredOption('--image <path>', 'Source image file')
-    .requiredOption('--model <model>', 'Model to use')
+    .option('--model <model>', 'Model to use')
     .option('--prompt <prompt>', 'Optional guiding prompt')
     .option('--duration <seconds>', 'Video duration')
     .option('--aspect-ratio <ratio>', 'Aspect ratio')
@@ -250,27 +245,30 @@ export function createVideoCommand(): Command {
       try {
         validateFileExists(opts.image, 'Source image');
 
+        const provider = getProvider(opts.provider);
+        if (!provider.imageToVideo) {
+          throw new MediaGenError('CAPABILITY_NOT_SUPPORTED', `Provider "${opts.provider}" does not support image-to-video`, {
+            provider: opts.provider, suggestion: 'Try: google, luma, runway, minimax',
+          });
+        }
+        const model = resolveModel(opts.model, 'video') || provider.defaultImageToVideoModel;
         const outputFile = resolveOutputPath(
           opts.output ? opts.output.split(/[/\\]/).pop()! : `i2v-${Date.now()}.mp4`,
           { output: opts.output, outputDir: opts.outputDir, allowExternalOutput: opts.allowExternalOutput },
         );
 
         if (opts.dryRun) {
-          printResponse({ ok: true, type: 'image-to-video', provider: opts.provider, model: opts.model, outputFile, dryRun: true }, opts.json);
+          printResponse({ ok: true, type: 'image-to-video', provider: opts.provider, model, outputFile, dryRun: true }, opts.json);
           return;
         }
 
-        const provider = getProvider(opts.provider);
-        if (!provider.imageToVideo) {
-          throw new MediaGenError('CAPABILITY_NOT_SUPPORTED', `Provider "${opts.provider}" does not support image-to-video`, {
-            provider: opts.provider, suggestion: 'Try: luma, runway',
-          });
-        }
+        checkOverwrite(outputFile, opts.overwrite);
+        ensureOutputDir(outputFile);
 
         const result = await provider.imageToVideo({
           image: opts.image,
           prompt: opts.prompt,
-          model: opts.model,
+          model: model || '',
           duration: opts.duration ? parseFloat(opts.duration) : undefined,
           aspectRatio: opts.aspectRatio,
           outputFile,
@@ -281,13 +279,14 @@ export function createVideoCommand(): Command {
             await pollForCompletion(result.jobId, opts.provider, (id) => provider.getJobStatus!(id), {
               wait: true, pollInterval: parseInt(opts.pollInterval), timeout: parseInt(opts.timeout),
             });
+            checkOverwrite(outputFile, opts.overwrite);
             const media = await provider.downloadJob!(result.jobId, outputFile);
-            printResponse({ ok: true, type: 'image-to-video', provider: opts.provider, model: opts.model, outputFile: media.outputFile, durationMs: media.durationMs, jobId: result.jobId }, opts.json);
+            printResponse({ ok: true, type: 'image-to-video', provider: opts.provider, model, outputFile: media.outputFile, durationMs: media.durationMs, jobId: result.jobId }, opts.json);
           } else {
-            printResponse({ ok: true, type: 'image-to-video', provider: opts.provider, jobId: result.jobId, status: result.status }, opts.json);
+            printResponse({ ok: true, type: 'image-to-video', provider: opts.provider, model, jobId: result.jobId, status: result.status }, opts.json);
           }
         } else {
-          printResponse({ ok: true, type: 'image-to-video', provider: opts.provider, model: opts.model, outputFile: result.outputFile, durationMs: result.durationMs }, opts.json);
+          printResponse({ ok: true, type: 'image-to-video', provider: opts.provider, model, outputFile: result.outputFile, durationMs: result.durationMs }, opts.json);
         }
       } catch (err) {
         printResponse(toErrorResponse(err), opts.json);

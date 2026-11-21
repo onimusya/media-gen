@@ -22,6 +22,7 @@ import { getMimeType } from '../../utils/mime.js';
 import { statSync } from 'node:fs';
 
 export class ReplicateProvider implements FullProvider {
+  readonly defaultVideoModel = 'minimax/video-01';
   id = 'replicate';
   name = 'Replicate';
   capabilities: ProviderCapability[] = ['image-generate', 'video-generate'];
@@ -98,7 +99,7 @@ export class ReplicateProvider implements FullProvider {
 
   async generateVideo(input: VideoGenerationInput): Promise<AsyncMediaResult> {
     const log = getLogger();
-    const model = input.model || 'minimax/video-01';
+    const model = input.model || this.defaultVideoModel;
     log.debug({ model, prompt: input.prompt }, 'Replicate video generation');
 
     const body: Record<string, unknown> = {

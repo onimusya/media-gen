@@ -25,21 +25,21 @@ export class LumaProvider implements FullProvider {
   id = 'luma';
   name = 'Luma AI';
   capabilities: ProviderCapability[] = ['video-generate', 'video-image-to-video'];
+  readonly defaultVideoModel = 'ray-3.2';
+  readonly defaultImageToVideoModel = this.defaultVideoModel;
 
-  private getApiKey(): string {
+  private getHeaders(agents = false): Record<string, string> {
     const config = getProviderConfig('luma');
-    if (!config?.apiKey) {
-      throw new MediaGenError('PROVIDER_NOT_CONFIGURED', 'Missing LUMA_API_KEY', {
+    const apiKey = agents ? config?.agentsApiKey || config?.apiKey : config?.apiKey;
+    if (!apiKey) {
+      const envVar = agents ? 'LUMA_AGENTS_API_KEY' : 'LUMA_API_KEY';
+      throw new MediaGenError('PROVIDER_NOT_CONFIGURED', `Missing ${envVar}`, {
         provider: 'luma',
-        suggestion: 'Set LUMA_API_KEY in your environment or run media-gen config init.',
+        suggestion: `Set ${envVar} in your environment or run media-gen config init.`,
       });
     }
-    return config.apiKey;
-  }
-
-  private getHeaders(): Record<string, string> {
     return {
-      Authorization: `Bearer ${this.getApiKey()}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     };
   }
@@ -47,16 +47,16 @@ export class LumaProvider implements FullProvider {
   async validateConfig(): Promise<ValidationResult> {
     const config = getProviderConfig('luma');
     const errors: string[] = [];
-    if (!config?.apiKey) errors.push('LUMA_API_KEY is not set');
+    if (!config?.apiKey && !config?.agentsApiKey) errors.push('Set LUMA_AGENTS_API_KEY or LUMA_API_KEY');
     return { valid: errors.length === 0, errors, warnings: [] };
   }
 
   async generateVideo(input: VideoGenerationInput): Promise<AsyncMediaResult> {
-    if (!input.model || input.model === 'ray-3.2') {
+    if (!input.model || input.model === this.defaultVideoModel) {
       return this.submitAgentsVideo(input);
     }
     const log = getLogger();
-    const model = input.model || 'ray-2';
+    const model = input.model;
     log.debug({ model, prompt: input.prompt }, 'Luma video generation');
 
     const body: Record<string, unknown> = {
@@ -84,7 +84,7 @@ export class LumaProvider implements FullProvider {
   }
 
   async imageToVideo(input: ImageToVideoInput): Promise<AsyncMediaResult> {
-    if (!input.model || input.model === 'ray-3.2') {
+    if (!input.model || input.model === this.defaultImageToVideoModel) {
       return this.submitAgentsVideo(input);
     }
     const log = getLogger();
@@ -97,7 +97,7 @@ export class LumaProvider implements FullProvider {
 
     const body: Record<string, unknown> = {
       prompt: input.prompt || '',
-      model: input.model || 'ray-2',
+      model: input.model,
       keyframes: { frame0: { type: 'image', url: dataUrl } },
     };
     if (input.aspectRatio) body.aspect_ratio = input.aspectRatio;
@@ -121,7 +121,7 @@ export class LumaProvider implements FullProvider {
   async getJobStatus(jobId: string): Promise<JobStatusResult> {
     const response = await fetch(
       this.jobUrl(jobId),
-      { headers: this.getHeaders() },
+      { headers: this.getHeaders(jobId.startsWith('agents::')) },
     );
 
     if (!response.ok) {
@@ -156,7 +156,7 @@ export class LumaProvider implements FullProvider {
     const startTime = Date.now();
     const response = await fetch(
       this.jobUrl(jobId),
-      { headers: this.getHeaders() },
+      { headers: this.getHeaders(jobId.startsWith('agents::')) },
     );
 
     if (!response.ok) {
@@ -193,8 +193,8 @@ export class LumaProvider implements FullProvider {
     };
     if ('image' in input) video.start_frame = { data: readFileSync(input.image).toString('base64'), media_type: getMimeType(input.image) };
     const response = await fetch('https://agents.lumalabs.ai/v1/generations', {
-      method: 'POST', headers: this.getHeaders(),
-      body: JSON.stringify({ model: 'ray-3.2', type: 'video', prompt: input.prompt || 'Animate this image.', aspect_ratio: input.aspectRatio || '16:9', video }),
+      method: 'POST', headers: this.getHeaders(true),
+      body: JSON.stringify({ model: this.defaultVideoModel, type: 'video', prompt: input.prompt || 'Animate this image.', aspect_ratio: input.aspectRatio || '16:9', video }),
     });
     if (!response.ok) {
       const err = await response.json().catch(() => ({})) as { detail?: string; message?: string };

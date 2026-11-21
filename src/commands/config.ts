@@ -56,6 +56,7 @@ export function createConfigCommand(): Command {
           allProviders.map(async (p) => {
             const validation = await p.validateConfig();
             const conf = getProviderConfig(p.id);
+            const apiKey = conf?.agentsApiKey || conf?.apiKey;
             return {
               id: p.id,
               name: p.name,
@@ -64,7 +65,7 @@ export function createConfigCommand(): Command {
               capabilities: p.capabilities,
               errors: validation.errors,
               warnings: validation.warnings,
-              apiKey: conf?.apiKey ? maskApiKey(conf.apiKey) : undefined,
+              apiKey: apiKey ? maskApiKey(apiKey) : undefined,
             };
           }),
         );

@@ -6,7 +6,7 @@
 export function generateSkillContent(): string {
   return `---
 name: media-generation
-description: Generate and edit images, create videos, synthesize speech, transcribe and translate audio using multiple AI providers (OpenAI, Google, ElevenLabs, Deepgram, Fal, Luma, Replicate, Stability, Runway, OpenRouter, Edge TTS). Use when the user asks to create media assets, generate pictures, make videos, produce voiceovers, transcribe recordings, or work with any visual/audio content.
+description: Generate and edit images, create videos and music, synthesize speech, transcribe and translate audio using multiple AI providers (OpenAI, Google, ElevenLabs, Deepgram, Fal, Luma, Replicate, Stability, Runway, OpenRouter, Edge TTS). Use when the user asks to create media assets, generate pictures, make videos or music, produce voiceovers, transcribe recordings, or work with any visual/audio content.
 compatibility: Requires Node.js 18+ and at least one provider API key configured in .env (Edge TTS is free, no key needed)
 metadata:
   author: Francis Hor <francishoe@gmail.com>
@@ -31,6 +31,7 @@ node ./skills/media-generation/scripts/media-gen.mjs <command> [options] --json
 | \`video generate\` | Generate video from text (async) |
 | \`video image-to-video\` | Animate an image into video |
 | \`video extend\` | Extend an existing video |
+| \`music generate\` | Generate an MP3 from a text prompt |
 | \`voice tts\` | Text to speech synthesis |
 | \`voice clone\` | Clone a voice from audio samples |
 | \`voice isolate\` | Isolate voice from background audio |
@@ -55,9 +56,11 @@ MEDIA_GEN_DEFAULT_MODEL=openai/gpt-image-2
 MEDIA_GEN_VOICE_PROVIDER=edge-tts
 MEDIA_GEN_VOICE_ID=en-US-EmmaMultilingualNeural
 MEDIA_GEN_VIDEO_PROVIDER=google
-MEDIA_GEN_VIDEO_MODEL=gemini-omni-1.1-flash
+MEDIA_GEN_VIDEO_MODEL=gemini-omni-1.2-flash
 MEDIA_GEN_AUDIO_PROVIDER=deepgram
 MEDIA_GEN_AUDIO_MODEL=nova-3
+MEDIA_GEN_MUSIC_PROVIDER=google
+MEDIA_GEN_MUSIC_MODEL=
 \`\`\`
 
 ## Examples
@@ -69,6 +72,13 @@ node ./skills/media-generation/scripts/media-gen.mjs image generate \\
   --prompt "A pixel art fantasy arena" \\
   --output ./outputs/arena.png \\
   --json
+\`\`\`
+
+### Music generation
+
+\`\`\`bash
+node ./skills/media-generation/scripts/media-gen.mjs music generate --provider google --prompt "Gentle orchestral piano" --instrumental --output ./outputs/lyria.mp3 --json
+node ./skills/media-generation/scripts/media-gen.mjs music generate --provider elevenlabs --prompt "Bright acoustic bossa nova" --duration 15 --instrumental --output ./outputs/eleven.mp3 --json
 \`\`\`
 
 ### Text to speech (Edge TTS - free)

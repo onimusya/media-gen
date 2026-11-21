@@ -9,6 +9,7 @@ export type ProviderCapability =
   | 'video-generate'
   | 'video-image-to-video'
   | 'video-extend'
+  | 'music-generate'
   | 'voice-tts'
   | 'voice-clone'
   | 'voice-isolate'
@@ -130,6 +131,15 @@ export interface TextToSpeechInput {
   instructions?: string;
 }
 
+export interface MusicGenerationInput {
+  prompt: string;
+  model: string;
+  outputFile: string;
+  duration?: number;
+  instrumental?: boolean;
+  overwrite?: boolean;
+}
+
 export interface VoiceCloneInput {
   name: string;
   files: string[];
@@ -170,6 +180,8 @@ export interface ImageProvider {
 }
 
 export interface VideoProvider {
+  readonly defaultVideoModel?: string;
+  readonly defaultImageToVideoModel?: string;
   generateVideo(input: VideoGenerationInput): Promise<AsyncMediaResult | MediaResult>;
   imageToVideo?(input: ImageToVideoInput): Promise<AsyncMediaResult | MediaResult>;
   extendVideo?(input: VideoExtendInput): Promise<AsyncMediaResult | MediaResult>;
@@ -188,6 +200,11 @@ export interface AudioProvider {
   isolateVoice?(input: AudioIsolationInput): Promise<MediaResult>;
 }
 
+export interface MusicProvider {
+  readonly defaultMusicModel: string;
+  generateMusic(input: MusicGenerationInput): Promise<MediaResult>;
+}
+
 // Combined provider type
 export type FullProvider = MediaProvider &
-  Partial<ImageProvider & VideoProvider & VoiceProvider & AudioProvider>;
+  Partial<ImageProvider & VideoProvider & VoiceProvider & AudioProvider & MusicProvider>;

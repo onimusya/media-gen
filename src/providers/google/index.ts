@@ -1,6 +1,6 @@
 /**
  * Google provider adapter for media-gen-cli.
- * Supports: Nano Banana images/editing, Omni video, Gemini speech.
+ * Supports: Nano Banana images/editing, Omni video, Gemini speech, and Lyria music.
  * Uses the Gemini API (generativelanguage.googleapis.com/v1beta).
  */
 
@@ -12,6 +12,7 @@ import type {
   ImageEditInput,
   ImageToVideoInput,
   VideoGenerationInput,
+  MusicGenerationInput,
   TextToSpeechInput,
   MediaResult,
   AsyncMediaResult,
@@ -20,6 +21,7 @@ import type {
 import { MediaGenError } from '../../core/errors.js';
 import { getProviderConfig } from '../../core/config.js';
 import { getLogger } from '../../core/logger.js';
+import { saveMusic, validateMusicInput } from '../../core/music.js';
 import { writeBuffer, ensureParentDir } from '../../utils/fs.js';
 import { getMimeType } from '../../utils/mime.js';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -29,6 +31,9 @@ interface InteractionResponse {
 }
 
 export class GoogleProvider implements FullProvider {
+  readonly defaultVideoModel = 'gemini-omni-1.2-flash';
+  readonly defaultImageToVideoModel = this.defaultVideoModel;
+  readonly defaultMusicModel = 'lyria-3.5';
   id = 'google';
   name = 'Google (Gemini / Nano Banana / Omni)';
   capabilities: ProviderCapability[] = [
@@ -37,6 +42,7 @@ export class GoogleProvider implements FullProvider {
     'video-generate',
     'video-image-to-video',
     'voice-tts',
+    'music-generate',
   ];
 
   private getApiKey(): string {
@@ -81,10 +87,23 @@ export class GoogleProvider implements FullProvider {
     return this.generateInteractionImage(input, model);
   }
 
-  private async interaction(body: Record<string, unknown>): Promise<InteractionResponse> {
+  async generateMusic(input: MusicGenerationInput): Promise<MediaResult> {
+    validateMusicInput(input, this.id);
+    const startTime = Date.now();
+    const prompt = [
+      input.prompt,
+      input.duration !== undefined && `Aim for approximately ${input.duration} seconds.`,
+      input.instrumental && 'Make this track entirely instrumental, without vocals.',
+    ].filter(Boolean).join('\n');
+    const data = await this.interaction({ model: input.model || this.defaultMusicModel, input: prompt }, '2026-05-20');
+    const part = this.getInteractionMedia(data, 'audio');
+    return saveMusic(input, Buffer.from(part.data, 'base64'), this.id, startTime);
+  }
+
+  private async interaction(body: Record<string, unknown>, apiRevision?: string): Promise<InteractionResponse> {
     const response = await fetch(`${this.getBaseUrl()}/interactions`, {
       method: 'POST',
-      headers: this.getHeaders(),
+      headers: { ...this.getHeaders(), ...(apiRevision && { 'Api-Revision': apiRevision }) },
       body: JSON.stringify({ ...body, store: false }),
     });
     if (!response.ok) {
@@ -94,7 +113,7 @@ export class GoogleProvider implements FullProvider {
     return await response.json() as InteractionResponse;
   }
 
-  private saveInteraction(data: InteractionResponse, type: string, outputFile: string, startTime: number): MediaResult {
+  private getInteractionMedia(data: InteractionResponse, type: string): { data: string; mime_type?: string } {
     // output_image/audio/video are SDK helpers; REST returns model_output steps.
     const parts = data.steps?.filter(step => step.type === 'model_output')
       .flatMap(step => step.content || []).filter(part => part.type === type && part.data);
@@ -102,6 +121,11 @@ export class GoogleProvider implements FullProvider {
     if (!part?.data) {
       throw new MediaGenError('API_ERROR', `No ${type} data in interaction response`, { provider: 'google' });
     }
+    return { data: part.data, mime_type: part.mime_type };
+  }
+
+  private saveInteraction(data: InteractionResponse, type: string, outputFile: string, startTime: number): MediaResult {
+    const part = this.getInteractionMedia(data, type);
     let buffer: Buffer = Buffer.from(part.data, 'base64');
     let mimeType = part.mime_type || getMimeType(outputFile);
     if (type === 'audio' && /audio\/(L16|pcm)/i.test(mimeType)) {
@@ -140,10 +164,10 @@ export class GoogleProvider implements FullProvider {
   }
 
   async generateVideo(input: VideoGenerationInput): Promise<AsyncMediaResult | MediaResult> {
-    const model = input.model || 'gemini-omni-1.1-flash';
+    const model = input.model || this.defaultVideoModel;
     if (model.startsWith('gemini-omni-')) return this.generateOmniVideo(input);
     if (model.startsWith('veo-3.1-') && model.endsWith('-preview')) {
-      throw new MediaGenError('INVALID_INPUT', 'Veo 3.1 Preview shut down on 2026-10-22. Use gemini-omni-1.1-flash.', { provider: 'google' });
+      throw new MediaGenError('INVALID_INPUT', `Veo 3.1 Preview shut down on 2026-10-22. Use ${this.defaultVideoModel}.`, { provider: 'google' });
     }
     const log = getLogger();
 
@@ -184,17 +208,26 @@ export class GoogleProvider implements FullProvider {
 
   private async generateOmniVideo(input: VideoGenerationInput | ImageToVideoInput): Promise<MediaResult> {
     const startTime = Date.now();
-    const content: Record<string, unknown>[] = [{ type: 'text', text: input.prompt || 'Animate this image.' }];
-    if ('image' in input) content.push({ type: 'image', data: readFileSync(input.image).toString('base64'), mime_type: getMimeType(input.image) });
-    // Omni timing is prompt-controlled; there is no durationSeconds request field.
-    if (input.duration) content.push({ type: 'text', text: `Generate a video lasting ${input.duration} seconds.` });
+    const model = input.model || this.defaultVideoModel;
+    const legacyOmni = model === 'gemini-omni-1.1-flash';
+    const duration = input.duration;
+    if (!legacyOmni && duration !== undefined && (!Number.isInteger(duration) || duration < 3 || duration > 15)) {
+      throw new MediaGenError('INVALID_INPUT', 'Gemini Omni duration must be a whole number from 3 to 15 seconds.', { provider: this.id });
+    }
+
+    const prompt = input.prompt || 'Animate this image.';
+    const text = legacyOmni && duration ? `${prompt}\nGenerate a video lasting ${duration} seconds.` : prompt;
+    const mediaInput = 'image' in input
+      ? [{ type: 'image', data: readFileSync(input.image).toString('base64'), mime_type: getMimeType(input.image) }, { type: 'text', text }]
+      : text;
     const data = await this.interaction({
-      model: input.model || 'gemini-omni-1.1-flash',
-      input: [{ type: 'user_input', content }],
+      model,
+      input: mediaInput,
       response_format: {
         type: 'video',
         ...(input.aspectRatio && { aspect_ratio: input.aspectRatio }),
         ...('resolution' in input && input.resolution && { resolution: input.resolution }),
+        ...(!legacyOmni && duration !== undefined && { duration: `${duration}s` }),
       },
     });
     return this.saveInteraction(data, 'video', input.outputFile, startTime);
@@ -202,7 +235,7 @@ export class GoogleProvider implements FullProvider {
 
   async imageToVideo(input: ImageToVideoInput): Promise<MediaResult> {
     if (input.model && !input.model.startsWith('gemini-omni-')) {
-      throw new MediaGenError('INVALID_INPUT', 'Use gemini-omni-1.1-flash for Google image-to-video', { provider: 'google' });
+      throw new MediaGenError('INVALID_INPUT', `Use ${this.defaultImageToVideoModel} for Google image-to-video`, { provider: 'google' });
     }
     return this.generateOmniVideo(input);
   }

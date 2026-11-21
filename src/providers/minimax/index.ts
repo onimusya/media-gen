@@ -23,6 +23,8 @@ import { getMimeType } from '../../utils/mime.js';
 import { writeFileSync, statSync } from 'node:fs';
 
 export class MinimaxProvider implements FullProvider {
+  readonly defaultVideoModel = 'MiniMax-Hailuo-2.3';
+  readonly defaultImageToVideoModel = this.defaultVideoModel;
   id = 'minimax';
   name = 'MiniMax (Hailuo)';
   capabilities: ProviderCapability[] = [
@@ -58,7 +60,7 @@ export class MinimaxProvider implements FullProvider {
 
   async generateVideo(input: VideoGenerationInput): Promise<AsyncMediaResult> {
     const log = getLogger();
-    const model = input.model || 'MiniMax-Hailuo-2.3';
+    const model = input.model || this.defaultVideoModel;
     log.debug({ model, prompt: input.prompt }, 'MiniMax video generation');
 
     const body: Record<string, unknown> = {
@@ -95,7 +97,7 @@ export class MinimaxProvider implements FullProvider {
 
   async imageToVideo(input: ImageToVideoInput): Promise<AsyncMediaResult> {
     const log = getLogger();
-    const model = input.model || 'MiniMax-Hailuo-2.3';
+    const model = input.model || this.defaultImageToVideoModel;
     log.debug({ model, image: input.image }, 'MiniMax image-to-video');
 
     // Read image and convert to base64 data URL

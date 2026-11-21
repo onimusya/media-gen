@@ -5,6 +5,7 @@
 import { Command } from 'commander';
 import { createImageCommand } from './commands/image.js';
 import { createVideoCommand } from './commands/video.js';
+import { createMusicCommand } from './commands/music.js';
 import { createVoiceCommand } from './commands/voice.js';
 import { createAudioCommand } from './commands/audio.js';
 import { createConfigCommand } from './commands/config.js';
@@ -25,7 +26,7 @@ export function createProgram(): Command {
 
   program
     .name('media-gen')
-    .description('Multi-provider media generation CLI for images, video, voice, and audio')
+    .description('Multi-provider media generation CLI for images, video, music, voice, and audio')
     .version(__APP_VERSION__)
     .option('--debug', 'Enable debug logging', false)
     .hook('preAction', (thisCommand) => {
@@ -37,6 +38,7 @@ export function createProgram(): Command {
 
   program.addCommand(createImageCommand());
   program.addCommand(createVideoCommand());
+  program.addCommand(createMusicCommand());
   program.addCommand(createVoiceCommand());
   program.addCommand(createAudioCommand());
   program.addCommand(createConfigCommand());

@@ -1,5 +1,24 @@
 # Release Notes
 
+## v1.7.0 (2026-11-21)
+
+### Music generation
+
+- Add `music generate` for Google Lyria 3.5 and ElevenLabs Music v2.5, with MP3 output, duration, and instrumental options.
+- List music models under the `music-generate` capability and document the new command with runnable examples.
+
+### Provider and CLI updates
+
+- Default Google video to Gemini Omni 1.2 Flash and use its duration parameter.
+- Add OpenAI GPT Image 2.6 models and refresh the Runway and OpenRouter catalogs.
+- Protect existing video outputs, honor provider defaults in video commands, and route Luma requests with the credential for each API.
+- Fix the npm package entry point, upgrade vulnerable dependencies, and use Node.js 24 LTS for development. The standalone CLI targets Node.js 18 and later.
+
+### Validation
+
+- 79 tests pass, along with type checking, lint, and the production build.
+- Live API tests produced audio from both music providers and video from Gemini Omni 1.2 Flash.
+
 ## v1.6.1 (2026-10-23)
 
 ### Fixes

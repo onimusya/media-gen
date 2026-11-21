@@ -1,9 +1,9 @@
 {
   "name": "media-gen-cli",
-  "version": "1.6.1",
+  "version": "1.7.0",
   "description": "Production-ready CLI for multi-provider media generation (images, video, voice, audio) designed for developers and AI agents",
   "type": "module",
-  "main": "./dist/media-gen.js",
+  "main": "./dist/media-gen.mjs",
   "bin": {
     "media-gen": "./dist/media-gen.mjs"
   },
@@ -48,16 +48,18 @@
     "edge-tts-universal": "^1.4.0",
     "ora": "^8.1.1",
     "pino": "^9.6.0",
-    "pino-pretty": "^13.0.0",
-    "zod": "^3.24.1"
+    "pino-pretty": "^13.2.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
-    "esbuild": "^0.24.2",
-    "eslint": "^9.16.0",
-    "prettier": "^3.4.2",
-    "tsx": "^4.19.2",
+    "@types/node": "^22.20.5",
+    "@typescript-eslint/parser": "^8.73.0",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.15.0",
+    "prettier": "^3.10.1",
+    "tsx": "^4.23.15",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
   }
 }

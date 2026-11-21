@@ -23,6 +23,8 @@ import { getMimeType } from '../../utils/mime.js';
 import { readFileSync, statSync } from 'node:fs';
 
 export class RunwayProvider implements FullProvider {
+  readonly defaultVideoModel = 'gen4.5';
+  readonly defaultImageToVideoModel = 'gen4_turbo';
   id = 'runway';
   name = 'Runway';
   capabilities: ProviderCapability[] = ['image-generate', 'video-generate', 'video-image-to-video'];
@@ -116,7 +118,7 @@ export class RunwayProvider implements FullProvider {
 
   async generateVideo(input: VideoGenerationInput): Promise<AsyncMediaResult> {
     const log = getLogger();
-    const model = input.model || 'gen4.5';
+    const model = input.model || this.defaultVideoModel;
     log.debug({ model, prompt: input.prompt }, 'Runway video generation');
 
     const body: Record<string, unknown> = {
@@ -124,7 +126,7 @@ export class RunwayProvider implements FullProvider {
       promptText: input.prompt,
     };
     body.duration = input.duration || 5;
-    body.ratio = this.videoRatio(input.aspectRatio);
+    body.ratio = model === 'kling_4' && input.aspectRatio === '1:1' ? '940:940' : this.videoRatio(input.aspectRatio);
 
     const response = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
       method: 'POST',
@@ -144,17 +146,22 @@ export class RunwayProvider implements FullProvider {
 
   async imageToVideo(input: ImageToVideoInput): Promise<AsyncMediaResult> {
     const log = getLogger();
-    log.debug({ model: input.model, image: input.image }, 'Runway image-to-video');
+    const model = input.model || this.defaultImageToVideoModel;
+    log.debug({ model, image: input.image }, 'Runway image-to-video');
+    const kling = model === 'kling_4' || model === 'kling_4_flash';
+    if (kling && input.aspectRatio && input.aspectRatio !== 'auto_720p' && !(model === 'kling_4' && input.aspectRatio === 'auto_1080p')) {
+      throw new MediaGenError('INVALID_INPUT', 'Kling image-to-video follows the source image framing. Use auto_720p, or auto_1080p with Kling 4.0.', { provider: this.id });
+    }
 
     const imgBuffer = readFileSync(input.image);
     const mime = getMimeType(input.image);
     const dataUrl = `data:${mime};base64,${imgBuffer.toString('base64')}`;
 
     const body: Record<string, unknown> = {
-      model: input.model || 'gen4_turbo',
+      model,
       promptImage: dataUrl,
-      promptText: input.prompt || '',
-      ratio: this.videoRatio(input.aspectRatio),
+      promptText: input.prompt || (kling ? undefined : ''),
+      ratio: kling ? input.aspectRatio || 'auto_720p' : this.videoRatio(input.aspectRatio),
     };
     body.duration = input.duration || 5;
 

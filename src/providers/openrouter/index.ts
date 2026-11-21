@@ -22,6 +22,7 @@ import { getMimeType } from '../../utils/mime.js';
 import { statSync } from 'node:fs';
 
 export class OpenRouterProvider implements FullProvider {
+  readonly defaultVideoModel = 'google/veo-3.1';
   id = 'openrouter';
   name = 'OpenRouter';
   capabilities: ProviderCapability[] = [
@@ -141,7 +142,7 @@ export class OpenRouterProvider implements FullProvider {
 
   async generateVideo(input: VideoGenerationInput): Promise<AsyncMediaResult> {
     const log = getLogger();
-    const model = input.model || 'google/veo-3.1';
+    const model = input.model || this.defaultVideoModel;
 
     log.debug({ model, prompt: input.prompt }, 'OpenRouter video generation');
 

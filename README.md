@@ -2,7 +2,7 @@
 
 [![skills.sh](https://skills.sh/b/onimusya/media-gen)](https://skills.sh/onimusya/media-gen)
 
-A production-ready CLI for multi-provider media generation. Generate images, videos, voice, and transcriptions through OpenAI, Google, Azure, ElevenLabs, Deepgram, Fal.ai, Luma AI, Replicate, Stability AI, Runway, OpenRouter, MiniMax, and Microsoft Edge TTS — all from a single interface.
+A production-ready CLI for multi-provider media generation. Generate images, videos, music, voice, and transcriptions through OpenAI, Google, Azure, ElevenLabs, Deepgram, Fal.ai, Luma AI, Replicate, Stability AI, Runway, OpenRouter, MiniMax, and Microsoft Edge TTS — all from a single interface.
 
 Designed for both direct human use and AI agent integration.
 
@@ -145,11 +145,13 @@ MEDIA_GEN_DEFAULT_MODEL=openai/gpt-image-2
 MEDIA_GEN_IMAGE_PROVIDER=openrouter
 MEDIA_GEN_IMAGE_MODEL=openai/gpt-image-2
 MEDIA_GEN_VIDEO_PROVIDER=google
-MEDIA_GEN_VIDEO_MODEL=gemini-omni-1.1-flash
+MEDIA_GEN_VIDEO_MODEL=gemini-omni-1.2-flash
 MEDIA_GEN_VOICE_PROVIDER=edge-tts
 MEDIA_GEN_VOICE_ID=en-US-EmmaMultilingualNeural
 MEDIA_GEN_AUDIO_PROVIDER=deepgram
 MEDIA_GEN_AUDIO_MODEL=nova-3
+MEDIA_GEN_MUSIC_PROVIDER=google
+MEDIA_GEN_MUSIC_MODEL=
 
 # Log level (silent, error, warn, info, debug, trace)
 MEDIA_GEN_LOG_LEVEL=error
@@ -195,6 +197,31 @@ media-gen providers models --provider edge-tts
 media-gen providers models --provider google
 ```
 
+### Generate music
+
+From the repository root, run the [music generation example](examples/music-generate.sh) with either provider.
+Set `GOOGLE_GENERATIVE_AI_API_KEY` for Google or `ELEVENLABS_API_KEY` for ElevenLabs before generating.
+
+```bash
+bash examples/music-generate.sh google --dry-run
+bash examples/music-generate.sh elevenlabs --dry-run
+```
+
+Remove `--dry-run` to generate an MP3. Google writes to `outputs/lyria-music.mp3`,
+and ElevenLabs writes to `outputs/elevenlabs-music.mp3`. Both commands return JSON
+when the MP3 is ready. To use your own prompt and path, call `media-gen music generate`
+with `--provider`, `--prompt`, and `--output`.
+
+Google defaults to `lyria-3.5` and uses `--duration` and `--instrumental` as prompt
+guidance. ElevenLabs defaults to `music_v2_5`, accepts durations from 3 to 600 seconds,
+and enforces instrumental mode when requested. In live tests, Google returned a
+61.4-second track from a 30-second request, and ElevenLabs returned a 10.03-second
+track from a 10-second request.
+
+Use `media-gen providers models --capability music-generate --json` to list supported
+music models. Set `MEDIA_GEN_MUSIC_PROVIDER` and optionally `MEDIA_GEN_MUSIC_MODEL`
+for music defaults.
+
 ## CLI Commands
 
 | Command | Description |
@@ -204,6 +231,7 @@ media-gen providers models --provider google
 | `video generate` | Generate a video from text |
 | `video image-to-video` | Animate an image into video |
 | `video extend` | Extend an existing video |
+| `music generate` | Generate music from a text prompt |
 | `voice tts` | Text to speech synthesis |
 | `voice clone` | Clone a voice from samples |
 | `voice isolate` | Isolate voice from background |
@@ -228,21 +256,21 @@ media-gen providers models --provider google
 
 ## Provider Support Matrix
 
-| Provider | Image | Video | TTS | Transcribe | Translate | Voice Clone | Voice Isolate |
-|----------|-------|-------|-----|------------|-----------|-------------|---------------|
-| OpenAI | ✓ | | ✓ | ✓ | ✓ | | |
-| Google | ✓ | ✓ | ✓ | | | | |
-| Azure | ✓ | | ✓ | ✓ | ✓ | | |
-| ElevenLabs | | | ✓ | | | ✓ | ✓ |
-| Deepgram | | | ✓ | ✓ | ✓ | | |
-| Fal.ai | ✓ | ✓ | | | | | |
-| Luma AI | | ✓ | | | | | |
-| Replicate | ✓ | ✓ | | | | | |
-| Stability AI | ✓ | | | | | | |
-| Runway | ✓ | ✓ | | | | | |
-| OpenRouter | ✓ | ✓ | | | | | |
-| MiniMax | | ✓ | ✓ | | | | |
-| Edge TTS | | | ✓ (free) | | | | |
+| Provider | Image | Video | TTS | Transcribe | Translate | Voice Clone | Voice Isolate | Music |
+|----------|-------|-------|-----|------------|-----------|-------------|---------------|-------|
+| OpenAI | ✓ | | ✓ | ✓ | ✓ | | | |
+| Google | ✓ | ✓ | ✓ | | | | | Yes |
+| Azure | ✓ | | ✓ | ✓ | ✓ | | | |
+| ElevenLabs | | | ✓ | | | ✓ | ✓ | Yes |
+| Deepgram | | | ✓ | ✓ | ✓ | | | |
+| Fal.ai | ✓ | ✓ | | | | | | |
+| Luma AI | | ✓ | | | | | | |
+| Replicate | ✓ | ✓ | | | | | | |
+| Stability AI | ✓ | | | | | | | |
+| Runway | ✓ | ✓ | | | | | | |
+| OpenRouter | ✓ | ✓ | | | | | | |
+| MiniMax | | ✓ | ✓ | | | | | |
+| Edge TTS | | | ✓ (free) | | | | | |
 
 ## Supported Models
 
@@ -269,7 +297,7 @@ provider it defines. The listing commands show those effective overrides.
 
 | Operation | Model IDs |
 | --- | --- |
-| Image generation / Image editing | `gpt-image-2.5-sunburst`, `gpt-image-2.5-flare`, `gpt-image-1.5`, `gpt-image-1-mini`, `gpt-image-2`, `gpt-image-1` |
+| Image generation / Image editing | `gpt-image-2.6-flare`, `gpt-image-2.6-sunburst`, `gpt-image-2.5-sunburst`, `gpt-image-2.5-flare`, `gpt-image-1.5`, `gpt-image-1-mini`, `gpt-image-2` |
 | Text-to-speech | `gpt-4o-mini-tts`, `tts-1`, `tts-1-hd` |
 | Transcription | `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-transcribe` |
 | Translation | `whisper-1` |
@@ -284,14 +312,15 @@ Documentation: [Images](https://developers.openai.com/api/docs/guides/image-gene
 | Operation | Model IDs |
 | --- | --- |
 | Image generation / Image editing | `gemini-nano-banana-2.1`, `gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`, `gemini-3-pro-image` |
-| Text-to-video / Image-to-video | `gemini-omni-1.1-flash` |
+| Text-to-video / Image-to-video | `gemini-omni-1.2-flash` |
+| Music generation | `lyria-3.5` |
 | Text-to-speech | `gemini-3.8-flash-tts`, `gemini-3.1-flash-tts-preview`, `gemini-2.5-flash-preview-tts`, `gemini-2.5-pro-preview-tts` |
 
 Omni returns the completed video synchronously. Use `.wav` output for Google
 speech. Imagen and direct Gemini API Veo 3.1 previews are retired; see the
 [migration notes](docs/media-api-update-2026-10.md).
 
-Documentation: [Images and editing](https://ai.google.dev/gemini-api/docs/image-generation), [Omni video](https://ai.google.dev/gemini-api/docs/omni), [speech](https://ai.google.dev/gemini-api/docs/speech-generation).
+Documentation: [Images and editing](https://ai.google.dev/gemini-api/docs/image-generation), [Omni video](https://ai.google.dev/gemini-api/docs/omni), [speech](https://ai.google.dev/gemini-api/docs/speech-generation), [Lyria music](https://ai.google.dev/gemini-api/docs/music-generation).
 
 </details>
 
@@ -324,11 +353,12 @@ Documentation: [Azure OpenAI documentation](https://learn.microsoft.com/en-us/az
 | Operation | Model IDs |
 | --- | --- |
 | Text-to-speech | `eleven_v4`, `eleven_v4_turbo`, `eleven_flash_v2_5`, `eleven_flash_v2`, `eleven_v3`, `eleven_multilingual_v2`, `eleven_turbo_v2_5`, `eleven_turbo_v2`, `eleven_monolingual_v1` |
+| Music generation | `music_v2_5`, `music_v2` |
 
 Voice cloning and isolation are also available. Cloning creates a voice ID;
 select a TTS model when synthesizing with that voice.
 
-Documentation: [Models](https://elevenlabs.io/docs/overview/models/), [API reference](https://elevenlabs.io/docs/api-reference/introduction).
+Documentation: [Models](https://elevenlabs.io/docs/overview/models/), [API reference](https://elevenlabs.io/docs/api-reference/introduction), [Compose music](https://elevenlabs.io/docs/api-reference/music/compose).
 
 </details>
 
@@ -368,7 +398,8 @@ Documentation: [Model catalog](https://fal.ai/models), [Queue API](https://fal.a
 | Text-to-video / Image-to-video | `ray-3.2`, `ray-2`, `ray-flash-2` |
 
 `ray-3.2` uses the Luma Agents API and `LUMA_AGENTS_API_KEY` (with
-`LUMA_API_KEY` as a fallback). Ray 2 models use the legacy Dream Machine API.
+`LUMA_API_KEY` as a fallback). Ray 2 models and Dream Machine jobs use
+`LUMA_API_KEY`.
 
 Documentation: [Ray 3.2 generation](https://docs.agents.lumalabs.ai/guides/videos/generation/), [Agents quickstart](https://docs.agents.lumalabs.ai/).
 
@@ -403,8 +434,8 @@ Documentation: [Stable Image API reference](https://platform.stability.ai/docs/a
 | Operation | Model IDs |
 | --- | --- |
 | Image generation | `gen4_image`, `gen4_image_turbo`, `gemini_image3_pro`, `gemini_image3.1_flash`, `gemini_2.5_flash`, `gpt_image_2` |
-| Text-to-video | `gen4.5`, `veo3`, `veo3.1`, `seedance2`, `seedance2_fast`, `seedance2_mini`, `happyhorse_1_0`, `gemini_omni_flash` |
-| Image-to-video | `gen4.5`, `gen4_turbo`, `gen3a_turbo`, `veo3`, `veo3.1`, `seedance2`, `seedance2_fast`, `seedance2_mini`, `happyhorse_1_0`, `gemini_omni_flash` |
+| Text-to-video | `gen4.5`, `veo3.1`, `seedance2`, `seedance2_fast`, `seedance2_mini`, `happyhorse_1_0`, `gemini_omni_flash`, `gemini_omni_flash_1.2`, `kling_4`, `kling_4_flash` |
+| Image-to-video | `gen4.5`, `gen4_turbo`, `veo3.1`, `seedance2`, `seedance2_fast`, `seedance2_mini`, `happyhorse_1_0`, `gemini_omni_flash`, `gemini_omni_flash_1.2`, `kling_4`, `kling_4_flash` |
 
 Documentation: [API reference](https://docs.dev.runwayml.com/api), [Input parameters](https://docs.dev.runwayml.com/assets/inputs/).
 
@@ -415,8 +446,8 @@ Documentation: [API reference](https://docs.dev.runwayml.com/api), [Input parame
 
 | Operation | Model IDs |
 | --- | --- |
-| Image generation | `qwen/qwen-image-2.1-turbo`, `qwen/qwen-image-2.1-pro`, `black-forest-labs/flux-3-image-klein`, `google/gemini-nano-banana-2.1`, `tencent/hy-image-v3.5-preview`, `bytedance-seed/seedream-5-0-flash`, `black-forest-labs/flux-3-image`, `recraft/recraft-v4.1-flash`, `openai/gpt-image-2.5-sunburst`, `openai/gpt-image-2.5-flare`, `microsoft/mai-image-2.6`, `microsoft/mai-image-2.6-flash`, `meta/muse-image`, `bytedance-seed/seedream-5-0-lite`, `bytedance-seed/seedream-5-0-pro`, `x-ai/grok-imagine-image-2.0`, `qwen/qwen-image-3`, `qwen/qwen-image-3-pro`, `recraft/recraft-v4.1`, `recraft/recraft-v4.1-pro`, `openai/gpt-image-2`, `openai/gpt-image-1`, `microsoft/mai-image-2.5`, `google/gemini-2.5-flash-image`, `google/gemini-3.1-flash-image`, `google/gemini-3.1-flash-image-preview`, `google/gemini-3.1-flash-lite-image`, `google/gemini-3-pro-image`, `google/gemini-3-pro-image-preview`, `x-ai/grok-imagine-image-quality`, `bytedance-seed/seedream-4.5`, `black-forest-labs/flux.2-klein-4b`, `recraft/recraft-v3` |
-| Text-to-video | `x-ai/grok-imagine-video-1.5-lite`, `heygen/heygen-video-1`, `minimax/hailuo-3-max`, `alibaba/wan-3.0-prime`, `alibaba/wan-3.0`, `bytedance/seedance-2.0-mini`, `bytedance/seedance-2.5`, `black-forest-labs/flux-3-video`, `minimax/hailuo-3`, `runway/gen-4.5`, `x-ai/grok-imagine-video-1.5`, `alibaba/happyhorse-1.1`, `alibaba/happyhorse-1.0`, `x-ai/grok-imagine-video`, `kwaivgi/kling-v3.0-pro`, `kwaivgi/kling-v3.0-std`, `google/veo-3.1-fast`, `google/veo-3.1-lite`, `minimax/hailuo-2.3`, `alibaba/wan-2.7`, `bytedance/seedance-2.0`, `bytedance/seedance-2.0-fast`, `alibaba/wan-2.6`, `bytedance/seedance-1-5-pro`, `google/veo-3.1` |
+| Image generation | `qwen/qwen-image-2.1-turbo`, `qwen/qwen-image-2.1-pro`, `black-forest-labs/flux-3-image-klein`, `google/gemini-nano-banana-2.1`, `tencent/hy-image-v3.5-preview`, `bytedance-seed/seedream-5-0-flash`, `black-forest-labs/flux-3-image`, `recraft/recraft-v4.1-flash`, `openai/gpt-image-2.5-sunburst`, `openai/gpt-image-2.5-flare`, `microsoft/mai-image-2.7`, `microsoft/mai-image-2.7-flash`, `microsoft/mai-image-2.6`, `microsoft/mai-image-2.6-flash`, `meta/muse-image`, `bytedance-seed/seedream-5-0-lite`, `bytedance-seed/seedream-5-0-pro`, `x-ai/grok-imagine-image-2.0`, `qwen/qwen-image-3`, `qwen/qwen-image-3-pro`, `recraft/recraft-v4.1`, `recraft/recraft-v4.1-pro`, `openai/gpt-image-2`, `openai/gpt-image-1`, `microsoft/mai-image-2.5`, `google/gemini-2.5-flash-image`, `google/gemini-3.1-flash-image`, `google/gemini-3.1-flash-image-preview`, `google/gemini-3.1-flash-lite-image`, `google/gemini-3-pro-image`, `google/gemini-3-pro-image-preview`, `bytedance-seed/seedream-4.5`, `black-forest-labs/flux.2-klein-4b`, `recraft/recraft-v3` |
+| Text-to-video | `x-ai/grok-imagine-video-1.5-lite`, `heygen/heygen-video-1`, `minimax/hailuo-3-max`, `alibaba/wan-3.0-prime`, `alibaba/wan-3.0`, `bytedance/seedance-2.0-mini`, `bytedance/seedance-2.5`, `bytedance/seedance-2.5-flash`, `google/gemini-omni-1.2-flash`, `black-forest-labs/flux-3-video`, `minimax/hailuo-3`, `runway/gen-4.5`, `x-ai/grok-imagine-video-1.5`, `alibaba/happyhorse-1.1`, `alibaba/happyhorse-1.0`, `x-ai/grok-imagine-video`, `kwaivgi/kling-v3.0-pro`, `kwaivgi/kling-v3.0-std`, `google/veo-3.1-fast`, `google/veo-3.1-lite`, `minimax/hailuo-2.3`, `alibaba/wan-2.7`, `bytedance/seedance-2.0`, `bytedance/seedance-2.0-fast`, `alibaba/wan-2.6`, `google/veo-3.1` |
 
 Documentation: [Images](https://openrouter.ai/docs/guides/overview/multimodal/image-generation), [Video](https://openrouter.ai/docs/guides/overview/multimodal/video-generation), [Live image catalog](https://openrouter.ai/api/v1/models?output_modalities=image), [Live video catalog](https://openrouter.ai/api/v1/models?output_modalities=video).
 
@@ -472,6 +503,7 @@ See the `examples/` directory:
 
 - `image-generate.sh` — Image generation with multiple providers
 - `video-generate.sh` — Video generation with async polling
+- [music-generate.sh](examples/music-generate.sh) — Generate MP3s with Google Lyria or ElevenLabs Music
 - `voice-tts.sh` — Text-to-speech with OpenAI and ElevenLabs
 - `edge-tts.sh` — Free TTS with Microsoft Edge (multiple languages)
 - `deepgram-transcribe.sh` — Transcription and translation
@@ -479,10 +511,13 @@ See the `examples/` directory:
 
 ## Development
 
+Use Node.js 24 LTS for installing dependencies, building, and running tests.
+
 ```bash
 npm install          # Install dependencies
 npm run dev -- --help  # Run in dev mode
 npm run typecheck    # Type check
+npm run lint         # Lint TypeScript sources
 npm test             # Run tests
 npm run build        # Bundle to dist/media-gen.mjs
 ```
@@ -497,7 +532,8 @@ Produces `dist/media-gen.mjs` and copies it to `skills/media-generation/scripts/
 
 ## Async Video Jobs
 
-Google Omni returns a completed file synchronously. For pollable video jobs,
+Google Omni returns a completed file synchronously. Omni 1.2 accepts
+`--duration` in whole seconds from 3 to 15. For pollable video jobs,
 use an asynchronous provider such as OpenRouter:
 
 ```bash

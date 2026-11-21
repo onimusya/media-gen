@@ -2,7 +2,7 @@
 # Generate an image using OpenAI
 media-gen image generate \
   --provider openai \
-  --model gpt-image-1 \
+  --model gpt-image-2.6-flare \
   --prompt "A pixel art fantasy football battle arena" \
   --size 1024x1024 \
   --output ./outputs/arena.png \

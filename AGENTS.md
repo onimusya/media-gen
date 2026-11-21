@@ -141,9 +141,28 @@ node ./skills/media-generation/scripts/media-gen.mjs providers list --json
 # Models for image generation
 node ./skills/media-generation/scripts/media-gen.mjs providers models --capability image-generate --json
 
+# Models for music generation
+node ./skills/media-generation/scripts/media-gen.mjs providers models --capability music-generate --json
+
 # Models for a specific provider
 node ./skills/media-generation/scripts/media-gen.mjs providers models --provider openrouter --json
 ```
+
+## Music Generation
+
+Use `music generate` with a text prompt and an `.mp3` output path. The command
+waits for the completed file and returns `outputFile` when `ok` is true.
+
+```bash
+node ./skills/media-generation/scripts/media-gen.mjs music generate \
+  --provider google --model lyria-3.5 --prompt "Quiet piano and cello" \
+  --duration 30 --instrumental --output ./outputs/piano.mp3 --dry-run --json
+```
+
+For ElevenLabs, use `--provider elevenlabs --model music_v2_5` and a duration
+from 3 to 600 seconds. Google sends the duration and instrumental request as
+prompt guidance. ElevenLabs sends them as API parameters. The
+[runnable example](examples/music-generate.sh) covers both providers.
 
 ## Async Video Jobs
 

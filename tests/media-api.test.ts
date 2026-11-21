@@ -11,11 +11,12 @@ import { OpenRouterProvider } from '../src/providers/openrouter/index.js';
 import { LumaProvider } from '../src/providers/luma/index.js';
 import { FalProvider } from '../src/providers/fal/index.js';
 import { AzureProvider } from '../src/providers/azure/index.js';
+import { ElevenLabsProvider } from '../src/providers/elevenlabs/index.js';
 import catalog from '../src/models.json';
 import { getProvider } from '../src/providers/registry.js';
 
 vi.mock('../src/core/config.js', () => ({
-  getProviderConfig: () => ({ apiKey: 'test-only-key' }),
+  getProviderConfig: () => ({ apiKey: 'test-only-key', agentsApiKey: 'test-agents-key' }),
 }));
 
 describe('Current media REST contracts', () => {
@@ -24,6 +25,7 @@ describe('Current media REST contracts', () => {
   const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
   const request = () => JSON.parse(fetchMock.mock.calls[0][1].body);
   const output = () => join(dir, 'result.png');
+  const mp3 = Buffer.from([0xff, 0xfb, 0x90, 0x64, 0x01]);
   const interaction = (type: string, data: Buffer, mime_type: string) => ({
     steps: [{ type: 'thought', content: [{ type, data: Buffer.from('thought').toString('base64') }] },
       { type: 'model_output', content: [{ type, data: data.toString('base64'), mime_type }] }],
@@ -42,6 +44,61 @@ describe('Current media REST contracts', () => {
     expect(fetchMock.mock.calls[0][0]).toMatch(/\/interactions$/);
     expect(request()).toMatchObject({ store: false, response_format: { type: 'image', aspect_ratio: '1:1' } });
     expect(readFileSync(output()).toString()).toBe('image');
+  });
+
+  it('generates Lyria 3.5 music and reads the final MP3 block from Interactions', async () => {
+    const outputFile = join(dir, 'lyria.mp3');
+    fetchMock.mockResolvedValue(json({ steps: [
+      { type: 'model_output', content: [{ type: 'text', text: 'Song structure' }] },
+      ...interaction('audio', mp3, 'audio/mpeg').steps,
+    ] }));
+    const result = await new GoogleProvider().generateMusic({
+      model: '', prompt: 'Gentle piano', duration: 30, instrumental: true, outputFile,
+    });
+
+    expect(fetchMock.mock.calls[0][0]).toBe('https://generativelanguage.googleapis.com/v1beta/interactions');
+    expect(fetchMock.mock.calls[0][1].headers['Api-Revision']).toBe('2026-05-20');
+    expect(request()).toMatchObject({
+      model: 'lyria-3.5',
+      input: 'Gentle piano\nAim for approximately 30 seconds.\nMake this track entirely instrumental, without vocals.',
+    });
+    expect(result).toMatchObject({ mimeType: 'audio/mpeg', outputFile, sizeBytes: mp3.length });
+    expect(readFileSync(outputFile)).toEqual(mp3);
+  });
+
+  it('composes Eleven Music v2.5 with milliseconds and saves the binary MP3 response', async () => {
+    const outputFile = join(dir, 'eleven.mp3');
+    fetchMock.mockResolvedValue(new Response(mp3));
+    await new ElevenLabsProvider().generateMusic({
+      model: '', prompt: 'Soft strings', duration: 10.5, instrumental: true, outputFile,
+    });
+
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.elevenlabs.io/v1/music');
+    expect(fetchMock.mock.calls[0][1].headers['xi-api-key']).toBe('test-only-key');
+    expect(request()).toEqual({
+      model_id: 'music_v2_5', prompt: 'Soft strings', music_length_ms: 10500, force_instrumental: true,
+    });
+    expect(readFileSync(outputFile)).toEqual(mp3);
+  });
+
+  it('rejects a non-MP3 music response before replacing an existing file', async () => {
+    const outputFile = join(dir, 'existing.mp3');
+    writeFileSync(outputFile, 'original');
+    fetchMock.mockResolvedValue(json({ unexpected: true }));
+    await expect(new ElevenLabsProvider().generateMusic({ model: '', prompt: 'Soft strings', outputFile, overwrite: true }))
+      .rejects.toMatchObject({ code: 'API_ERROR' });
+    expect(readFileSync(outputFile, 'utf8')).toBe('original');
+  });
+
+  it('protects music written to the destination while the provider request is in flight', async () => {
+    const outputFile = join(dir, 'existing.mp3');
+    fetchMock.mockImplementation(async () => {
+      writeFileSync(outputFile, 'original');
+      return new Response(mp3);
+    });
+    await expect(new ElevenLabsProvider().generateMusic({ model: '', prompt: 'Soft strings', outputFile }))
+      .rejects.toMatchObject({ code: 'FILE_ALREADY_EXISTS' });
+    expect(readFileSync(outputFile, 'utf8')).toBe('original');
   });
 
   it('rejects retired Imagen without calling the API', async () => {
@@ -74,9 +131,26 @@ describe('Current media REST contracts', () => {
 
   it('generates Omni video synchronously from REST steps', async () => {
     fetchMock.mockResolvedValue(json(interaction('video', Buffer.from('video'), 'video/mp4')));
-    const result = await new GoogleProvider().generateVideo({ model: 'gemini-omni-1.1-flash', prompt: 'cat', aspectRatio: '9:16', resolution: '1080p', outputFile: output() });
-    expect(request().response_format).toEqual({ type: 'video', aspect_ratio: '9:16', resolution: '1080p' });
+    const result = await new GoogleProvider().generateVideo({ model: '', prompt: 'cat', aspectRatio: '9:16', resolution: '1080p', duration: 15, outputFile: output() });
+    expect(request()).toMatchObject({
+      model: 'gemini-omni-1.2-flash',
+      input: 'cat',
+      response_format: { type: 'video', aspect_ratio: '9:16', resolution: '1080p', duration: '15s' },
+    });
     expect(result).toMatchObject({ mimeType: 'video/mp4', outputFile: output() });
+  });
+
+  it('rejects an out-of-range Omni 1.2 duration before submitting', async () => {
+    await expect(new GoogleProvider().generateVideo({ model: '', prompt: 'cat', duration: 16, outputFile: output() }))
+      .rejects.toMatchObject({ code: 'INVALID_INPUT' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps prompt-based timing for explicitly selected Omni 1.1', async () => {
+    fetchMock.mockResolvedValue(json(interaction('video', Buffer.from('video'), 'video/mp4')));
+    await new GoogleProvider().generateVideo({ model: 'gemini-omni-1.1-flash', prompt: 'cat', duration: 5, outputFile: output() });
+    expect(request().input).toContain('5 seconds');
+    expect(request().response_format).not.toHaveProperty('duration');
   });
 
   it('rejects retired Veo previews without charging for a request', async () => {
@@ -120,6 +194,15 @@ describe('Current media REST contracts', () => {
     expect(request()).toMatchObject({ model: 'gen4.5', duration: 5, ratio: '720:1280' });
   });
 
+  it('uses Kling 4.0 Flash source-image framing on Runway', async () => {
+    const image = join(dir, 'input.png');
+    writeFileSync(image, 'reference');
+    fetchMock.mockResolvedValue(json({ id: 'job' }));
+    await new RunwayProvider().imageToVideo({ model: 'kling_4_flash', image, outputFile: output() });
+    expect(request()).toMatchObject({ model: 'kling_4_flash', ratio: 'auto_720p' });
+    expect(request()).not.toHaveProperty('promptText');
+  });
+
   it('selects JSON for GPT transcription models', async () => {
     const inputFile = join(dir, 'audio.mp3'); writeFileSync(inputFile, 'audio');
     fetchMock.mockResolvedValue(json({ text: 'Hi' }));
@@ -133,13 +216,22 @@ describe('Current media REST contracts', () => {
   });
 
   it('routes Ray 3.2 submit and polling to Luma Agents', async () => {
-    fetchMock.mockResolvedValueOnce(json({ id: 'generation' })).mockResolvedValueOnce(json({ state: 'completed' }));
+    fetchMock.mockResolvedValueOnce(json({ id: 'generation' }))
+      .mockResolvedValueOnce(json({ state: 'completed' }))
+      .mockResolvedValueOnce(json({ state: 'completed' }));
     const provider = new LumaProvider();
     const result = await provider.generateVideo({ model: 'ray-3.2', prompt: 'cat', duration: 5, outputFile: output() });
     expect(request()).toMatchObject({ model: 'ray-3.2', type: 'video', video: { duration: '5s', resolution: '720p' } });
     expect(result.jobId).toBe('agents::generation');
     await provider.getJobStatus(result.jobId);
     expect(fetchMock.mock.calls[1][0]).toBe('https://agents.lumalabs.ai/v1/generations/generation');
+    await provider.getJobStatus('legacy-job');
+    expect(fetchMock.mock.calls[2][0]).toBe('https://api.lumalabs.ai/dream-machine/v1/generations/legacy-job');
+    expect(fetchMock.mock.calls.map(([, options]) => options.headers.Authorization)).toEqual([
+      'Bearer test-agents-key',
+      'Bearer test-agents-key',
+      'Bearer test-only-key',
+    ]);
   });
 
   it('uses Luma Agents output URLs when downloading', async () => {
@@ -195,7 +287,7 @@ describe('Current media REST contracts', () => {
   });
 
   it('all advertised capabilities have an implemented method and listed model', () => {
-    const methods: Record<string, string> = { 'image-generate': 'generateImage', 'image-edit': 'editImage', 'video-generate': 'generateVideo', 'video-image-to-video': 'imageToVideo', 'video-extend': 'extendVideo', 'voice-tts': 'textToSpeech', 'voice-clone': 'cloneVoice', 'voice-isolate': 'isolateVoice', 'audio-transcribe': 'transcribe', 'audio-translate': 'translate' };
+    const methods: Record<string, string> = { 'image-generate': 'generateImage', 'image-edit': 'editImage', 'video-generate': 'generateVideo', 'video-image-to-video': 'imageToVideo', 'video-extend': 'extendVideo', 'music-generate': 'generateMusic', 'voice-tts': 'textToSpeech', 'voice-clone': 'cloneVoice', 'voice-isolate': 'isolateVoice', 'audio-transcribe': 'transcribe', 'audio-translate': 'translate' };
     for (const [id, entry] of Object.entries(catalog)) {
       const provider = getProvider(id);
       for (const [capability, models] of Object.entries(entry.capabilities)) {

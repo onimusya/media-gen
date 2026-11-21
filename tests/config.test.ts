@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadConfig, isProviderConfigured, getConfiguredProviders, initConfig } from '../src/core/config.js';
 import { existsSync, rmSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -16,11 +16,26 @@ describe('Config', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
     if (originalHome) process.env.MEDIA_GEN_HOME = originalHome;
     else delete process.env.MEDIA_GEN_HOME;
+  });
+
+  it('keeps Luma Agents and Dream Machine credentials separate', () => {
+    vi.stubEnv('LUMA_AGENTS_API_KEY', 'test-agents-key');
+    vi.stubEnv('LUMA_API_KEY', undefined);
+    expect(loadConfig(testDir).providers.luma).toEqual({ agentsApiKey: 'test-agents-key' });
+    expect(isProviderConfigured('luma', testDir)).toBe(true);
+    expect(getConfiguredProviders(testDir)).toContain('luma');
+
+    vi.stubEnv('LUMA_API_KEY', 'test-legacy-key');
+    expect(loadConfig(testDir).providers.luma).toEqual({
+      agentsApiKey: 'test-agents-key',
+      apiKey: 'test-legacy-key',
+    });
   });
 
   it('loadConfig returns empty providers when no env vars or config file', () => {

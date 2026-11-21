@@ -28,6 +28,8 @@ export interface MediaGenConfig {
     voiceId?: string;
     audioProvider?: string;
     audioModel?: string;
+    musicProvider?: string;
+    musicModel?: string;
   };
 }
 
@@ -44,7 +46,7 @@ const ENV_KEY_MAP: Record<string, Record<string, string>> = {
   elevenlabs: { apiKey: 'ELEVENLABS_API_KEY' },
   deepgram: { apiKey: 'DEEPGRAM_API_KEY' },
   fal: { apiKey: 'FAL_KEY' },
-  luma: { apiKey: 'LUMA_API_KEY' },
+  luma: { apiKey: 'LUMA_API_KEY', agentsApiKey: 'LUMA_AGENTS_API_KEY' },
   replicate: { apiKey: 'REPLICATE_API_TOKEN' },
   stability: { apiKey: 'STABILITY_API_KEY' },
   runway: { apiKey: 'RUNWAY_API_KEY' },
@@ -80,14 +82,14 @@ export function ensureHomeEnv(): void {
 # OpenAI (images, TTS, transcription)
 # OPENAI_API_KEY=
 
-# Google (Nano Banana images, Omni video, Gemini TTS)
+# Google (Nano Banana images, Omni video, Gemini TTS, Lyria music)
 # GOOGLE_GENERATIVE_AI_API_KEY=
 
 # Azure AI Services (OpenAI-compatible endpoint)
 # AZURE_OPENAI_API_KEY=
 # AZURE_OPENAI_ENDPOINT=https://{resource}.services.ai.azure.com/openai/v1
 
-# ElevenLabs (TTS, voice clone, isolation)
+# ElevenLabs (TTS, voice clone, isolation, music)
 # ELEVENLABS_API_KEY=
 
 # Deepgram (transcription, translation, TTS)
@@ -131,6 +133,8 @@ export function ensureHomeEnv(): void {
 # MEDIA_GEN_VOICE_ID=en-US-EmmaMultilingualNeural
 # MEDIA_GEN_AUDIO_PROVIDER=
 # MEDIA_GEN_AUDIO_MODEL=
+# MEDIA_GEN_MUSIC_PROVIDER=
+# MEDIA_GEN_MUSIC_MODEL=
 
 # Log level: silent, error, warn, info, debug, trace (default: error)
 # MEDIA_GEN_LOG_LEVEL=error
@@ -219,10 +223,6 @@ export function loadConfig(cwd?: string): MediaGenConfig {
     }
   }
 
-  if (process.env.LUMA_AGENTS_API_KEY) {
-    config.providers.luma = { ...config.providers.luma, apiKey: process.env.LUMA_AGENTS_API_KEY };
-  }
-
   return config;
 }
 
@@ -234,16 +234,19 @@ export function getProviderConfig(providerId: string, cwd?: string): ProviderCon
 // Providers that don't require an API key
 const KEYLESS_PROVIDERS = new Set(['edge-tts']);
 
+function hasProviderCredentials(providerId: string, config?: ProviderConfig): boolean {
+  return Boolean(config?.apiKey || (providerId === 'luma' && config?.agentsApiKey));
+}
+
 export function isProviderConfigured(providerId: string, cwd?: string): boolean {
   if (KEYLESS_PROVIDERS.has(providerId)) return true;
-  const config = getProviderConfig(providerId, cwd);
-  return !!config?.apiKey;
+  return hasProviderCredentials(providerId, getProviderConfig(providerId, cwd));
 }
 
 export function getConfiguredProviders(cwd?: string): string[] {
   const config = loadConfig(cwd);
   return Object.entries(config.providers)
-    .filter(([_, conf]) => !!conf.apiKey)
+    .filter(([id, conf]) => hasProviderCredentials(id, conf))
     .map(([id]) => id);
 }
 
@@ -322,7 +325,7 @@ export function getEnvKeyMap(): Record<string, Record<string, string>> {
  * Resolve default provider/model for a given media type.
  * Priority: CLI arg > type-specific env > global env > config file defaults.
  */
-export type MediaType = 'image' | 'video' | 'voice' | 'audio';
+export type MediaType = 'image' | 'video' | 'voice' | 'audio' | 'music';
 
 export interface DefaultsResult {
   provider?: string;
@@ -339,7 +342,8 @@ export function getDefaults(mediaType: MediaType, cwd?: string): DefaultsResult 
 
   // Global env vars
   const globalProvider = process.env['MEDIA_GEN_DEFAULT_PROVIDER'];
-  const globalModel = process.env['MEDIA_GEN_DEFAULT_MODEL'];
+  // Music uses its own model defaults so existing image or speech defaults don't apply.
+  const globalModel = mediaType === 'music' ? undefined : process.env['MEDIA_GEN_DEFAULT_MODEL'];
 
   // Config file defaults
   const configProvider = config.defaults?.[`${mediaType}Provider` as keyof typeof config.defaults] as string | undefined;
